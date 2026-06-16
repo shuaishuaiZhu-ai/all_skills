@@ -1,0 +1,22 @@
+{
+  "plugins": [
+    {
+      "marketplace": "claude-plugins-official",
+      "repo": "anthropics/claude-plugins-official",
+      "plugin": "superpowers"
+    }
+  ],
+  "skills": [
+    { "name": "claude-api" },
+    { "name": "mcp-builder" },
+    { "name": "svg-diagrams" },
+    { "name": "memory-management-model" },
+    { "name": "cross-session-learning" },
+    { "name": "webapp-testing" },
+    { "name": "contribute-skills" }
+  ],
+  "codex": {
+    "include_plugin_skills": true,
+    "plugin_skills": ["superpowers/*"]
+  }
+}

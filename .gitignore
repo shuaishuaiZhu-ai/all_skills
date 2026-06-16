@@ -1,0 +1,4 @@
+# 依赖与缓存——按 package.json / 脚本在每台机器上自行还原,不入库
+node_modules/
+__pycache__/
+*.pyc
