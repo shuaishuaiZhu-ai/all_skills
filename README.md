@@ -59,3 +59,26 @@ python sync.py            # Windows: py -3 sync.py
 - 撞名时**仓库优先**:`install` 复制时若遇 `~/.claude/skills/` 下非本工具管理的同名个人副本,
   备份为 `<名>.bak` 后覆盖;插件命名空间副本(`plugin:skill`)与个人裸名不在同一路径,仅告警提示。
 - `doctor` 会列出历史遗留的「个人 skill 与插件同名重复」,供你清理。
+
+## 清理历史重复(doctor → 手动删除)
+
+Claude 安装某些插件(如 `cloudflare`)时,会把插件的 skill **自动抽取一份**到 `~/.claude/skills/`,
+于是同一技能既在插件里、又留了个人裸名副本——重复且容易混淆。`sync.py` **只报告、不自动删**
+(删个人文件由你决定)。安全清理步骤:
+
+1. **列出重复**:
+   ```bash
+   python sync.py doctor        # 看「① 个人 skill 与已装插件同名重复」
+   ```
+2. **删前核对**:确认个人副本没被你改过(与插件版逐字节比对);若完全一致或只是格式差异,即可删。
+3. **备份后删除**(可回滚):
+   ```bash
+   cd ~/.claude/skills
+   tar -czf ~/skills-dup-backup.tar.gz <重复名...>
+   rm -rf <重复名...>
+   ```
+4. **复查**:`python sync.py doctor` 的 ① 应为 0。
+
+删掉的只是 `~/.claude/skills/` 下的个人副本;插件本身不受影响,技能继续以带命名空间的
+`plugin:skill` 形式提供(如 `cloudflare:wrangler`)。本工具管理的 7 个 skill(账本
+`~/.claude/skills/.agent-skills-installed.json` 记录)不会被列为重复,也不受影响。
