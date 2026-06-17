@@ -512,7 +512,7 @@ def cmd_push(args):
     m = load_manifest()
     plug_idx = plugin_skill_index()
 
-    if args.only:                                    # 非交互(代理/脚本)
+    if args.only is not None:                        # 非交互(代理/脚本);空串=不收录任何
         names = [n.strip() for n in args.only.split(",") if n.strip()]
     else:                                            # 交互:分类 + 复选框
         catalog, preselected, _ = _push_catalog()

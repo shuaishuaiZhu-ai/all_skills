@@ -12,7 +12,18 @@ description: Use when the user wants to push, contribute, share, or publish skil
 
 用户说「push skills」「贡献 / 同步 skills」「把这个 skill 推上去」等。
 
-## 步骤
+## 最简路径:让用户直接跑 push.py
+
+若用户能在终端操作,**首选**让其运行仓库里的交互脚本——自带分类(新增/更新)+ 复选框 TUI:
+
+```bash
+python ~/agent-skills/push.py        # Windows: py -3 push.py
+```
+
+它会自动收集、弹复选框、提交并 push,无需代理介入。**只有当用户希望由你(代理)代为挑选**,
+或终端不便交互时,才走下面的「代理多选框」步骤。
+
+## 步骤(代理代选)
 
 1. **定位仓库与脚本**:找到 `agent-skills` 仓库根目录的 `sync.py`(默认 `~/agent-skills/sync.py`;
    若不在,问用户克隆路径)。下面用 `SYNC=<该路径>` 表示。
