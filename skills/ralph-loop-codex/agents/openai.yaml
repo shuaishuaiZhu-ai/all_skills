@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ralph Loop Codex"
+  short_description: "Bounded iterative self-improvement loop"
+  default_prompt: "Use $ralph-loop-codex to iterate on this task until the completion condition is verified."

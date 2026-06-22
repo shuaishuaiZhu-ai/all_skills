@@ -1,0 +1,3 @@
+﻿display_name: ccproxy Convergence Review
+short_description: Consolidate ccproxy implementation, tests, docs, and risks.
+default_prompt: Review the ccproxy project state across prior subtasks and produce a convergence report with evidence, gaps, and validation steps.

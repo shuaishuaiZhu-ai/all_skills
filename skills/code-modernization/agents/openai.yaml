@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Modernization"
+  short_description: "Assess and migrate legacy systems safely"
+  default_prompt: "Use $code-modernization to assess this legacy system and produce a behavior-preserving modernization plan."
