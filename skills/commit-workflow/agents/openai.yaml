@@ -1,0 +1,4 @@
+interface:
+  display_name: "Commit Workflow"
+  short_description: "Commit, push, PR, and branch cleanup flow"
+  default_prompt: "Use $commit-workflow to prepare a clean commit and PR for these changes."

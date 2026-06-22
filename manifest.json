@@ -27,6 +27,45 @@
     },
     {
       "name": "contribute-skills"
+    },
+    {
+      "name": "code-modernization"
+    },
+    {
+      "name": "code-simplifier"
+    },
+    {
+      "name": "commit-workflow"
+    },
+    {
+      "name": "feature-dev"
+    },
+    {
+      "name": "github-pr-code-review"
+    },
+    {
+      "name": "hatch-pet"
+    },
+    {
+      "name": "pm-mode"
+    },
+    {
+      "name": "pr-review-toolkit"
+    },
+    {
+      "name": "ralph-loop-codex"
+    },
+    {
+      "name": "technical-diagram-generator"
+    },
+    {
+      "name": "ccproxy-project-convergence-review"
+    },
+    {
+      "name": "codex-reflection-archiver"
+    },
+    {
+      "name": "codex-session-project-bootstrap"
     }
   ],
   "codex": {

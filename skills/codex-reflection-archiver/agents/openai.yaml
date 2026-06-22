@@ -1,0 +1,3 @@
+﻿display_name: Codex Reflection Archiver
+short_description: Archive Codex self-reviews and retrospectives into Obsidian.
+default_prompt: Create an Obsidian reflection document for this self-review or project retrospective.

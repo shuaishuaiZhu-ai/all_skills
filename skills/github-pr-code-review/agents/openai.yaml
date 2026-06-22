@@ -1,0 +1,4 @@
+interface:
+  display_name: "GitHub PR Code Review"
+  short_description: "High-confidence GitHub PR review"
+  default_prompt: "Use $github-pr-code-review to review this pull request for real bugs and project guideline violations."

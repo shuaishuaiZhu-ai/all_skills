@@ -1,0 +1,4 @@
+interface:
+  display_name: "Feature Dev"
+  short_description: "Guided architecture-first feature workflow"
+  default_prompt: "Use $feature-dev to plan and implement this feature with codebase exploration, architecture design, review, and verification."

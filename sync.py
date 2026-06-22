@@ -68,7 +68,7 @@ def read_frontmatter(skill_md):
     """极简 YAML frontmatter 解析,只取 name / description(不引 pyyaml)。"""
     name = desc = ""
     try:
-        text = skill_md.read_text(encoding="utf-8")
+        text = skill_md.read_text(encoding="utf-8-sig")
     except OSError:
         return {"name": "", "description": ""}
     if not text.startswith("---"):
