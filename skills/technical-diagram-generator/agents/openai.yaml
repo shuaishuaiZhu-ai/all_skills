@@ -1,4 +1,4 @@
 interface:
   display_name: "Technical Diagram Generator"
-  short_description: "Generate safe source-backed diagrams."
-  default_prompt: "Generate or repair a source-backed technical diagram, keep arrows away from text and labels, save editable source plus rendered image, update any wiki links, and verify UTF-8, image paths, and layout safety."
+  short_description: "Create source-backed, audience-calibrated diagrams."
+  default_prompt: "Use $technical-diagram-generator to define the reader and evidence first, create an editable technical diagram plus rendered image, and verify content depth, layout, links, and UTF-8."
