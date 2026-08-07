@@ -1,0 +1,4 @@
+interface:
+  display_name: "Publish Feishu Wiki Doc"
+  short_description: "Publish Markdown to Feishu Wiki with SVG assets"
+  default_prompt: "Use $publish-feishu-wiki-doc to publish this Markdown document to Feishu Wiki."

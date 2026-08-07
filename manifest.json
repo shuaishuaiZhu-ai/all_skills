@@ -66,6 +66,9 @@
     },
     {
       "name": "codex-session-project-bootstrap"
+    },
+    {
+      "name": "publish-feishu-wiki-doc"
     }
   ],
   "codex": {
