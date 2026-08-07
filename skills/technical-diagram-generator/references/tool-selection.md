@@ -6,19 +6,19 @@ Use this reference when the diagram job has multiple possible tools.
 
 | Tool/source | Best for | Weakness |
 |---|---|---|
-| lark-whiteboard-style SVG/PNG | Chinese learning diagrams, whiteboard explainers, wiki images that must be easy to view | More manual layout work; preserve source to allow edits |
+| Whiteboard-style SVG/PNG | Learning diagrams, whiteboard explainers, wiki images that must be easy to view | More manual layout work; preserve source to allow edits |
 | Graphviz DOT | Routing graphs, dependency graphs, topology, dense directed edges, deterministic layout | Less whiteboard-like; labels can become cramped |
-| Mermaid | Fast inline Markdown diagrams, sequences, simple flows | Obsidian/rendering differences; large Chinese diagrams can be ugly or fragile |
+| Mermaid | Fast inline Markdown diagrams, sequences, simple flows | Renderer differences; large multilingual diagrams can be ugly or fragile |
 | Hand-authored SVG | Precise diagrams, stable wiki image, later text edits | Must verify rendered result carefully |
 | PlantUML | Sequence/state diagrams when PlantUML toolchain is available | Tooling may not be installed; less ideal for polished wiki assets |
 | D2 | Clean architecture diagrams when D2 is installed | Do not assume availability |
 
-## Workspace Defaults
+## Portable Defaults
 
-- For `C:\home\for_ai` wiki pages, prefer rendered PNG/SVG plus an editable source file.
-- For C2C / portmap route explanations, prefer lark-whiteboard-style SVG/PNG or Graphviz DOT.
+- For wiki or documentation pages, prefer rendered PNG/SVG plus an editable source file.
+- For network route, hardware path, dependency, or topology explanations, prefer whiteboard-style SVG/PNG or Graphviz DOT.
 - If Mermaid routes arrows through subgraph titles or labels, switch to hand-authored SVG or Graphviz instead of repeatedly tweaking Mermaid.
-- Avoid Chinese characters in generated asset filenames. Use ASCII slugs.
+- Avoid non-ASCII characters in generated asset filenames unless the target project requires them. Use ASCII slugs by default.
 - Do not use Excalidraw / tldraw unless the user explicitly asks.
 
 ## Diagram Pattern Hints
