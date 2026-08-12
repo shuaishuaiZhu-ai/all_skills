@@ -12,8 +12,6 @@ Copy this file into the task workspace or evidence directory and replace every `
 - omit_details: <fill helper functions, fields, local variables, formulas, or internals excluded from this figure>
 - reading_order: <fill left-to-right, top-to-bottom, numbered sequence, or another explicit order>
 - arrow_semantics: <fill what each color/style means: call, data, notification, ownership, completion>
-- color_profile: semantic-multicolor | monochrome (monochrome requires an explicit reason)
-- semantic_palette: <fill the meaning of each tone, for example blue=input, amber=registration, green=query, purple=handoff>
 - output_assets: <fill target SVG/DOT/MMD and PNG paths>
 - pilot_gate: <fill required, explicitly waived by user, or not needed for one simple figure>
 - approval_baseline: <fill approved exemplar/style path, or not applicable with reason>
