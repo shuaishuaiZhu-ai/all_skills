@@ -1,4 +1,4 @@
 interface:
   display_name: "Technical Diagram Generator"
   short_description: "Create source-backed, audience-calibrated diagrams."
-  default_prompt: "Use $technical-diagram-generator: release SVG by default; use Draw.io or both only when the user explicitly asks. Preserve manual sources by generating candidates, retain the legacy SVG repair route, and require strict layout plus page-width and 100% visual review before ready."
+  default_prompt: "Use $technical-diagram-generator: author Draw.io sources manually when requested, preserve editable sources, export through the bundled adapter, and run strict layout, parity, and page-width/100% visual checks. Do not auto-layout or generate Draw.io XML from a component spec."
