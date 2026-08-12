@@ -1,4 +1,4 @@
 interface:
   display_name: "Technical Diagram Generator"
   short_description: "Create source-backed, audience-calibrated diagrams."
-  default_prompt: "Use $technical-diagram-generator to define the reader and evidence first, create an editable technical diagram plus rendered image, and verify content depth, layout, links, and UTF-8."
+  default_prompt: "Use $technical-diagram-generator: release SVG by default; use Draw.io or both only when the user explicitly asks. Preserve manual sources by generating candidates, retain the legacy SVG repair route, and require strict layout plus page-width and 100% visual review before ready."

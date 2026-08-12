@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-08-10T04:30:00.000Z" agent="Codex" version="31.1.8" type="device">
+  <diagram id="formal-readable-flow" name="Formal Flow">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="正式技术流程模板" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Microsoft YaHei;fontSize=38;fontStyle=1;fontColor=#172B4D;role=title;" vertex="1" parent="1" data-role="title">
+          <mxGeometry x="60" y="48" width="1480" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="以可编辑结构承载主流程、状态反馈和结构化校验信息" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Microsoft YaHei;fontSize=18;fontColor=#52627A;" vertex="1" parent="1">
+          <mxGeometry x="60" y="112" width="1480" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="section-main" value="主流程：输入 → 处理 → 输出" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Microsoft YaHei;fontSize=24;fontStyle=1;fontColor=#172B4D;role=section-title;" vertex="1" parent="1" data-role="section-title">
+          <mxGeometry x="60" y="176" width="1480" height="36" as="geometry" />
+        </mxCell>
+
+        <mxCell id="card-input" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF3FF;strokeColor=#2F6BFF;strokeWidth=2;arcSize=16;shadow=0;role=card;" vertex="1" parent="1" data-role="card" data-diagram-group="main-flow">
+          <mxGeometry x="60" y="240" width="410" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="card-input-title" value="输入准备" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Microsoft YaHei;fontSize=24;fontStyle=1;fontColor=#123B7A;role=title;" vertex="1" parent="card-input" data-role="title" data-diagram-group="card-input-content">
+          <mxGeometry x="24" y="18" width="362" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="card-input-body" value="收集输入并建立可追踪上下文" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Microsoft YaHei;fontSize=17;fontColor=#23456F;role=body;" vertex="1" parent="card-input" data-role="body" data-diagram-group="card-input-content">
+          <mxGeometry x="24" y="72" width="362" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="card-input-divider" value="" style="shape=line;strokeColor=#2F6BFF;strokeWidth=2;fillColor=none;html=1;role=divider;" vertex="1" parent="card-input" data-role="divider" data-diagram-group="card-input-content">
+          <mxGeometry x="24" y="136" width="362" height="1" as="geometry" />
+        </mxCell>
+        <mxCell id="card-input-status" value="状态：输入已就绪" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=12;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#23456F;role=status;" vertex="1" parent="card-input" data-role="status" data-diagram-group="card-input-content">
+          <mxGeometry x="24" y="160" width="362" height="52" as="geometry" />
+        </mxCell>
+
+        <mxCell id="card-process" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8DD;strokeColor=#D9A300;strokeWidth=2;arcSize=16;shadow=0;role=card;" vertex="1" parent="1" data-role="card" data-diagram-group="main-flow">
+          <mxGeometry x="550" y="240" width="410" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="card-process-title" value="核心处理" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Microsoft YaHei;fontSize=24;fontStyle=1;fontColor=#6B4D00;role=title;" vertex="1" parent="card-process" data-role="title" data-diagram-group="card-process-content">
+          <mxGeometry x="24" y="18" width="362" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="card-process-body" value="执行主要规则并产出中间结果" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Microsoft YaHei;fontSize=19;fontColor=#654D08;role=body;" vertex="1" parent="card-process" data-role="body" data-diagram-group="card-process-content">
+          <mxGeometry x="24" y="72" width="362" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="card-process-divider" value="" style="shape=line;strokeColor=#D9A300;strokeWidth=2;fillColor=none;html=1;role=divider;" vertex="1" parent="card-process" data-role="divider" data-diagram-group="card-process-content">
+          <mxGeometry x="24" y="136" width="362" height="1" as="geometry" />
+        </mxCell>
+        <mxCell id="card-process-status" value="状态：规则执行中" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=12;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#654D08;role=status;" vertex="1" parent="card-process" data-role="status" data-diagram-group="card-process-content">
+          <mxGeometry x="24" y="160" width="362" height="52" as="geometry" />
+        </mxCell>
+
+        <mxCell id="card-output" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF8EE;strokeColor=#2A9D68;strokeWidth=2;arcSize=16;shadow=0;role=card;" vertex="1" parent="1" data-role="card" data-diagram-group="main-flow">
+          <mxGeometry x="1040" y="240" width="500" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="card-output-title" value="输出交付" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Microsoft YaHei;fontSize=24;fontStyle=1;fontColor=#145B3B;role=title;" vertex="1" parent="card-output" data-role="title" data-diagram-group="card-output-content">
+          <mxGeometry x="24" y="18" width="452" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="card-output-body" value="交付结果并保留可复核的证据边界" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Microsoft YaHei;fontSize=19;fontColor=#1F6044;role=body;" vertex="1" parent="card-output" data-role="body" data-diagram-group="card-output-content">
+          <mxGeometry x="24" y="72" width="452" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="card-output-divider" value="" style="shape=line;strokeColor=#2A9D68;strokeWidth=2;fillColor=none;html=1;role=divider;" vertex="1" parent="card-output" data-role="divider" data-diagram-group="card-output-content">
+          <mxGeometry x="24" y="136" width="452" height="1" as="geometry" />
+        </mxCell>
+        <mxCell id="card-output-status" value="状态：结果可复核" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=12;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#1F6044;role=status;" vertex="1" parent="card-output" data-role="status" data-diagram-group="card-output-content">
+          <mxGeometry x="24" y="160" width="452" height="52" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge-input-process" value="校验通过" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#60708A;strokeWidth=3;endArrow=block;endFill=1;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#52627A;role=connector;" edge="1" parent="1" source="card-input" target="card-process" data-role="connector" data-diagram-group="main-flow">
+          <mxGeometry y="-20" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-process-output" value="处理完成" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#60708A;strokeWidth=3;endArrow=block;endFill=1;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#52627A;role=connector;" edge="1" parent="1" source="card-process" target="card-output" data-role="connector" data-diagram-group="main-flow">
+          <mxGeometry y="-20" relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="section-support" value="辅助说明：状态、提示与结构化校验" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Microsoft YaHei;fontSize=24;fontStyle=1;fontColor=#172B4D;role=section-title;" vertex="1" parent="1" data-role="section-title">
+          <mxGeometry x="60" y="532" width="1480" height="36" as="geometry" />
+        </mxCell>
+
+        <mxCell id="card-status" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4ECFF;strokeColor=#8E5FD9;strokeWidth=2;arcSize=16;shadow=0;role=card;" vertex="1" parent="1" data-role="card" data-diagram-group="supporting-row">
+          <mxGeometry x="60" y="600" width="520" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="card-status-title" value="状态反馈" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Microsoft YaHei;fontSize=24;fontStyle=1;fontColor=#4A2B74;role=title;" vertex="1" parent="card-status" data-role="title" data-diagram-group="card-status-content">
+          <mxGeometry x="24" y="18" width="472" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="card-status-body" value="集中呈现当前阶段与可执行动作" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Microsoft YaHei;fontSize=19;fontColor=#553A77;role=body;" vertex="1" parent="card-status" data-role="body" data-diagram-group="card-status-content">
+          <mxGeometry x="24" y="72" width="472" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="card-status-divider" value="" style="shape=line;strokeColor=#8E5FD9;strokeWidth=2;fillColor=none;html=1;role=divider;" vertex="1" parent="card-status" data-role="divider" data-diagram-group="card-status-content">
+          <mxGeometry x="24" y="136" width="472" height="1" as="geometry" />
+        </mxCell>
+        <mxCell id="card-status-status" value="状态：等待复核动作" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=12;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#553A77;role=status;" vertex="1" parent="card-status" data-role="status" data-diagram-group="card-status-content">
+          <mxGeometry x="24" y="160" width="472" height="52" as="geometry" />
+        </mxCell>
+
+        <mxCell id="note-reading" value="阅读提示&#xa;先看主流程，再用状态与表格校验结果。" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F3FF;strokeColor=#9B7AD4;strokeWidth=2;arcSize=16;align=left;verticalAlign=middle;spacingLeft=18;spacingRight=18;fontFamily=Microsoft YaHei;fontSize=17;fontColor=#4A3A62;role=note;" vertex="1" parent="1" data-role="note" data-diagram-group="supporting-row">
+          <mxGeometry x="650" y="630" width="310" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="table-header-field" value="字段" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#244C7A;strokeColor=#FFFFFF;strokeWidth=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=16;fontStyle=1;fontColor=#FFFFFF;role=table-cell;" vertex="1" parent="1" data-role="table-cell">
+          <mxGeometry x="1040" y="600" width="166" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="table-header-meaning" value="含义" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#244C7A;strokeColor=#FFFFFF;strokeWidth=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=16;fontStyle=1;fontColor=#FFFFFF;role=table-cell;" vertex="1" parent="1" data-role="table-cell">
+          <mxGeometry x="1206" y="600" width="167" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="table-header-check" value="检查点" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#244C7A;strokeColor=#FFFFFF;strokeWidth=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=16;fontStyle=1;fontColor=#FFFFFF;role=table-cell;" vertex="1" parent="1" data-role="table-cell">
+          <mxGeometry x="1373" y="600" width="167" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="table-row1-field" value="输入" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F8FC;strokeColor=#C7D6E8;strokeWidth=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=15;fontColor=#1F3854;role=table-cell;" vertex="1" parent="1" data-role="table-cell">
+          <mxGeometry x="1040" y="652" width="166" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="table-row1-meaning" value="来源清晰" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C7D6E8;strokeWidth=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=15;fontColor=#1F3854;role=table-cell;" vertex="1" parent="1" data-role="table-cell">
+          <mxGeometry x="1206" y="652" width="167" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="table-row1-check" value="证据边界" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C7D6E8;strokeWidth=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=15;fontColor=#1F3854;role=table-cell;" vertex="1" parent="1" data-role="table-cell">
+          <mxGeometry x="1373" y="652" width="167" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="table-row2-field" value="处理" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F8FC;strokeColor=#C7D6E8;strokeWidth=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=15;fontColor=#1F3854;role=table-cell;" vertex="1" parent="1" data-role="table-cell">
+          <mxGeometry x="1040" y="704" width="166" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="table-row2-meaning" value="规则生效" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C7D6E8;strokeWidth=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=15;fontColor=#1F3854;role=table-cell;" vertex="1" parent="1" data-role="table-cell">
+          <mxGeometry x="1206" y="704" width="167" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="table-row2-check" value="中间结果" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C7D6E8;strokeWidth=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=15;fontColor=#1F3854;role=table-cell;" vertex="1" parent="1" data-role="table-cell">
+          <mxGeometry x="1373" y="704" width="167" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="table-row3-field" value="输出" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F4F8FC;strokeColor=#C7D6E8;strokeWidth=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=15;fontColor=#1F3854;role=table-cell;" vertex="1" parent="1" data-role="table-cell">
+          <mxGeometry x="1040" y="756" width="166" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="table-row3-meaning" value="结果稳定" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C7D6E8;strokeWidth=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=15;fontColor=#1F3854;role=table-cell;" vertex="1" parent="1" data-role="table-cell">
+          <mxGeometry x="1206" y="756" width="167" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="table-row3-check" value="可复核" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C7D6E8;strokeWidth=1;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=15;fontColor=#1F3854;role=table-cell;" vertex="1" parent="1" data-role="table-cell">
+          <mxGeometry x="1373" y="756" width="167" height="52" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

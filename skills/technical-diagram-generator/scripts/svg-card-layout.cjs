@@ -25,10 +25,11 @@ function isTitleLine(line, index = 0) {
 function requiredBaselineGap(prev, cur, index, options = {}) {
   const maxFont = Math.max(prev.fontSize, cur.fontSize);
   const isTitleTransition = isTitleLine(prev, index - 1) && !isTitleLine(cur, index);
+  const statusDividerGap = cur.role === "status" ? (options.statusDividerGap || 0) : 0;
   if (isTitleTransition) {
-    return maxFont * (options.titleBodyGapFactor || DEFAULT_TITLE_BODY_GAP);
+    return maxFont * (options.titleBodyGapFactor || DEFAULT_TITLE_BODY_GAP) + statusDividerGap;
   }
-  return maxFont * (options.bodyLineGapFactor || DEFAULT_BODY_LINE_GAP);
+  return maxFont * (options.bodyLineGapFactor || DEFAULT_BODY_LINE_GAP) + statusDividerGap;
 }
 
 function lintBaselineGap(prev, cur, index, options = {}) {

@@ -1,0 +1,8 @@
+{
+  "name": "technical-diagram-generator-runtime",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "engines": { "node": ">=20" },
+  "dependencies": { "sharp": "0.35.2" }
+}

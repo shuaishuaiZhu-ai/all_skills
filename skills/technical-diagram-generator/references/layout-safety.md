@@ -2,11 +2,19 @@
 
 Use this reference whenever a diagram has arrows, labels, subgraph titles, or dense node groups.
 
+## Strict quality profile
+
+Apply strict checks to the requested channel. SVG remains the default release channel; explicit Draw.io or `both` also requires Draw.io SVG/PNG render parity. Use previews only for validation unless the user or target requests them as deliverables. A failure is any connector through text, unreadable text, unsafe gap, clipped content, or excessive whitespace under `drawio-quality-standard.md`.
+
+The quality report remains immutable at `visual-pending`. Page-width and 100% review produce a separate content-addressed receipt; only a `ready` receipt bound to unchanged report and artifact hashes permits release. Automated checks never substitute for visual review.
+
 ## Non-Negotiable Rule
 
 No connector line or arrowhead may cover readable text. Text includes node labels, group titles, legends, field names, values, and code identifiers.
 
 Layering text above an arrow is not a valid fix if the arrow still passes through the text area. Route around the text instead.
+
+For Draw.io edge labels, set an explicit perpendicular `mxGeometry y` offset of at least 16 px. Do not leave readable edge text at the default zero offset, even when `labelBackgroundColor` hides part of the stroke.
 
 ## No-Connector Zones
 
@@ -40,6 +48,7 @@ Text must be contained by the visual card, not merely have its baseline inside t
 - Require that value to be at least 10 px above the rectangle bottom.
 - If it fails, increase the card height, move the text block up, reduce font size, or split the label.
 - Never allow descenders or Chinese glyph bottoms to touch the stroke line.
+- Keep inset label pills, badges, and framed notes at least 32 px inside every rounded parent edge so the parent outline remains visually separate.
 
 ## Baseline Line Spacing
 

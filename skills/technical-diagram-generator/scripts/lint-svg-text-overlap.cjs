@@ -113,12 +113,39 @@ function markerDefs(svg) {
   return markers;
 }
 
+function embeddedCellRoles(svg) {
+  const roles = new Map();
+  const content = /\bcontent="([^"]*)"/.exec(svg)?.[1];
+  if (!content) return roles;
+  const decoded = content
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&apos;", "'")
+    .replaceAll("&amp;", "&");
+  for (const match of decoded.matchAll(/<mxCell\b([^>]*)\/?\s*>/g)) {
+    const cell = attrs(match[1]);
+    if (cell.id && cell["data-role"]) roles.set(cell.id, cell["data-role"]);
+  }
+  return roles;
+}
+
+function enclosingCellRole(svg, index, roles) {
+  const start = svg.lastIndexOf('<g data-cell-id="', index);
+  if (start < 0) return "";
+  const opening = svg.slice(start, svg.indexOf(">", start) + 1);
+  const id = /data-cell-id="([^"]+)"/.exec(opening)?.[1];
+  return id ? roles.get(id) || "" : "";
+}
+
 function lineSegments(svg) {
   const segments = [];
+  const roles = embeddedCellRoles(svg);
   for (const match of svg.matchAll(/<line\b([^>]*)\/?>/g)) {
     const a = attrs(match[1]);
     segments.push({
       raw: match[0],
+      role: a["data-role"] || enclosingCellRole(svg, match.index, roles),
       x1: num(a.x1),
       y1: num(a.y1),
       x2: num(a.x2),
@@ -133,6 +160,7 @@ function lineSegments(svg) {
     for (let i = 0; i + 1 < points.length; i += 1) {
       segments.push({
         raw: match[0],
+        role: a["data-role"] || enclosingCellRole(svg, match.index, roles),
         x1: points[i].x,
         y1: points[i].y,
         x2: points[i + 1].x,
@@ -149,6 +177,7 @@ function lineSegments(svg) {
     for (let i = 0; i + 3 < nums.length; i += 2) {
       segments.push({
         raw: match[0].slice(0, 120),
+        role: a["data-role"] || enclosingCellRole(svg, match.index, roles),
         x1: nums[i],
         y1: nums[i + 1],
         x2: nums[i + 2],
@@ -238,6 +267,8 @@ function textInsideRectRisks(svg) {
     const rectMatch = body.match(/<rect\b([^>]*)\/?>/);
     if (!rectMatch) continue;
     const rect = attrs(rectMatch[1]);
+    const fill = String(rect.fill || "").toLowerCase();
+    if (rect.stroke === "none" && (fill === "#fff" || fill === "#ffffff" || fill === "white")) continue;
     const left = num(rect.x);
     const top = num(rect.y);
     const right = left + num(rect.width);
@@ -294,6 +325,7 @@ for (const file of files) {
   const hits = [];
   for (const box of boxes) {
     for (const seg of segments) {
+      if (seg.role === "divider" || /data-role=["']divider["']/.test(seg.raw)) continue;
       if (segmentIntersectsBox(seg, box)) {
         hits.push({ label: box.label, segment: seg.raw });
         break;

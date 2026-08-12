@@ -2,6 +2,15 @@
 
 Use this reference when the diagram job has multiple possible tools.
 
+## 发布路由契约
+
+- 默认 SVG 交付：未指定格式或 `--format svg` 时只交付 `.svg`。（`Default SVG delivery: .svg only.`）
+- 显式 Draw.io 交付：只有用户明确要求 `--format drawio` 时才交付 `.drawio`，且只交付 `.drawio`；工具不可用时明确失败，不得切换到 SVG。（`Explicit Draw.io delivery: .drawio only.`）
+- 双通道交付：只有用户明确要求 `--format both` 时才交付 `.svg` + `.drawio`。（`Both-channel delivery: .svg + .drawio.`）
+- 现有权威源或手工编辑源不得覆盖；生成结果写入 `.generated` 或 `.generated-vN` 候选，供人工比较和合并。
+- SVG/PNG 验证导出物是临时文件，除非用户或发布目标明确要求，否则不属于交付物。（`SVG/PNG validation exports are temporary unless explicitly requested.`）
+- 旧 SVG 修复继续走原 SVG 分支，保留其源文件与既有输出。
+
 ## Preferred Choices
 
 | Tool/source | Best for | Weakness |
@@ -12,6 +21,8 @@ Use this reference when the diagram job has multiple possible tools.
 | Hand-authored SVG | Precise diagrams, stable wiki image, later text edits | Must verify rendered result carefully |
 | PlantUML | Sequence/state diagrams when PlantUML toolchain is available | Tooling may not be installed; less ideal for polished wiki assets |
 | D2 | Clean architecture diagrams when D2 is installed | Do not assume availability |
+
+SVG 是正式发布的默认源通道。Draw.io 在用户明确需要可编辑 Draw.io 源时使用；Mermaid 适合简单内嵌流程或时序，Graphviz 适合稠密确定性图，Lark Whiteboard 仅用于真实白板目标。标准组件生成器的命令和质量状态见 `standard-component-generator.md`。
 
 ## Portable Defaults
 
