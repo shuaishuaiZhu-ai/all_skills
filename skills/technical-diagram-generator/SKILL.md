@@ -80,6 +80,10 @@ For Markdown/wiki pages, embed PNG and link source nearby:
 > Diagram source: [`diagram.svg`](../../../_attachments/path/diagram.svg)
 ```
 
+## Semantic color requirement
+
+For formal diagrams with three or more stages/components, use `colorProfile: semantic-multicolor` and at least two semantic colors. Declare what blue, amber, green, purple, and gray mean in the brief. Use `monochrome` only with an explicit reason; accidental single-color output is a quality failure.
+
 ## Verification
 
 Run the relevant checks:
