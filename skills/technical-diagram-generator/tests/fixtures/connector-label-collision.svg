@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2591" height="303" viewBox="0 0 2591 303">
+  <desc>Two connector labels that render on top of each other. Kept as a
+  regression fixture: measuring every glyph at 0.58 em puts the CJK label's
+  right edge at x=155.68 and reports no overlap at all, so this figure passed
+  the lint while the two labels visibly merged in the rendered PNG.</desc>
+  <rect x="0" y="0" width="2591" height="303" fill="#ffffff" stroke="none"/>
+  <text x="163.4" y="102" font-size="16">submit_bio</text>
+  <text x="100" y="100" font-size="16">完成中断回调</text>
+</svg>

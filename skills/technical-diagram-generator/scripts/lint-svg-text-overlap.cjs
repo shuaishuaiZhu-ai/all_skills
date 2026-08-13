@@ -13,6 +13,11 @@ if (!files.length) {
 const padding = Number(process.env.TEXT_CLEARANCE_PX || 16);
 const nodeTextPadding = Number(process.env.NODE_TEXT_PADDING_PX || 10);
 const maxArrowheadPx = Number(process.env.MAX_ARROWHEAD_PX || 24);
+const textCollisionYRatio = Number(process.env.TEXT_COLLISION_Y_RATIO || 0.35);
+const textCollisionXRatio = Number(process.env.TEXT_COLLISION_X_RATIO || 0.25);
+// Beyond this width:height ratio a figure is unreadable at page width: the
+// browser scales it down until body text falls below legible size.
+const maxAspectRatio = Number(process.env.MAX_ASPECT_RATIO || 4);
 let failed = false;
 
 function attrs(raw) {
@@ -88,6 +93,167 @@ function textBoxes(svg) {
     boxes.push(makeTextBox(a, label, null));
   }
   return boxes;
+}
+
+// Full-width ranges (CJK ideographs, kana, hangul, CJK punctuation, fullwidth
+// forms). A uniform 0.58 em advance under-measures these by ~40%, which is
+// enough to hide a real collision between a CJK label and a Latin one.
+const fullWidthPattern = /[ᄀ-ᅟ⺀-〾ぁ-㏿㐀-䶿一-鿿ꀀ-꓏가-힣豈-﫿︰-﹏＀-｠￠-￦]/u;
+
+function advanceEm(character) {
+  return fullWidthPattern.test(character) ? 1 : 0.58;
+}
+
+function inkWidth(label, fontSize) {
+  return [...String(label)].reduce((sum, character) => sum + advanceEm(character) * fontSize, 0);
+}
+
+// Ink extents, not the font bounding box. Cap height ~0.78 em above the
+// baseline and descender ~0.22 em below it; the looser 0.9/0.28 box used for
+// connector clearance reports overlap on text stacks that render fine.
+function inkBox(a, label, dx, dy) {
+  const fontSize = num(a["font-size"], 16);
+  const width = inkWidth(label, fontSize);
+  const anchor = a["text-anchor"] || "start";
+  const x = num(a.x) + dx;
+  const y = num(a.y) + dy;
+  const left = anchor === "middle" ? x - width / 2 : anchor === "end" ? x - width : x;
+  return { label, fontSize, left, right: left + width, top: y - fontSize * 0.78, bottom: y + fontSize * 0.22 };
+}
+
+function translateOf(raw) {
+  const transform = /\btransform="([^"]*)"/.exec(raw);
+  if (!transform) return { dx: 0, dy: 0, supported: true };
+  let dx = 0;
+  let dy = 0;
+  let supported = true;
+  for (const op of transform[1].matchAll(/([A-Za-z]+)\s*\(([^)]*)\)/g)) {
+    if (op[1] !== "translate") {
+      supported = false;
+      continue;
+    }
+    const parts = op[2].trim().split(/[\s,]+/).map(Number);
+    dx += Number.isFinite(parts[0]) ? parts[0] : 0;
+    dy += Number.isFinite(parts[1]) ? parts[1] : 0;
+  }
+  return { dx, dy, supported };
+}
+
+// A <text> renders at its own x/y plus every ancestor transform. Comparing raw
+// coordinates across groups puts a legend drawn inside translate(1990,55) on
+// top of the title at x=90 and reports a collision the renderer never draws.
+function inkTextBoxes(svg) {
+  const boxes = [];
+  const stack = [{ dx: 0, dy: 0, supported: true }];
+  for (const match of svg.matchAll(/<(\/?)(g|text)\b([^>]*?)(\/?)>/g)) {
+    const [, closing, name, raw, selfClosing] = match;
+    const frame = stack[stack.length - 1];
+    if (name === "g") {
+      if (closing) {
+        if (stack.length > 1) stack.pop();
+        continue;
+      }
+      if (selfClosing) continue;
+      const shift = translateOf(raw);
+      stack.push({
+        dx: frame.dx + shift.dx,
+        dy: frame.dy + shift.dy,
+        supported: frame.supported && shift.supported,
+      });
+      continue;
+    }
+    if (closing || selfClosing) continue;
+    const end = svg.indexOf("</text>", match.index);
+    const label = cleanText(svg.slice(match.index + match[0].length, end < 0 ? svg.length : end));
+    const a = attrs(raw);
+    const own = translateOf(raw);
+    // Empty semantic placeholders carry no ink and cannot collide. A rotated or
+    // matrix-transformed label has no axis-aligned ink box, so skipping it beats
+    // measuring it at coordinates it is not drawn at.
+    if (!label || !frame.supported || !own.supported) continue;
+    if (a["aria-hidden"] === "true" || num(a["font-size"], 16) < 4) continue;
+    boxes.push(inkBox(a, label, frame.dx + own.dx, frame.dy + own.dy));
+  }
+  return boxes;
+}
+
+// Two labels collide when their ink boxes overlap on BOTH axes by more than a
+// share of their own size. Relative thresholds keep intentionally tight text
+// stacks (baseline gaps down to 1.2 em) out of the report while still catching
+// labels that render on top of each other.
+function textCollisionRisks(svg) {
+  const boxes = inkTextBoxes(svg);
+  const risks = [];
+  for (let index = 0; index < boxes.length; index += 1) {
+    for (let other = index + 1; other < boxes.length; other += 1) {
+      const first = boxes[index];
+      const second = boxes[other];
+      const overlapX = Math.min(first.right, second.right) - Math.max(first.left, second.left);
+      const overlapY = Math.min(first.bottom, second.bottom) - Math.max(first.top, second.top);
+      if (overlapX <= 0 || overlapY <= 0) continue;
+      const minWidth = Math.min(first.right - first.left, second.right - second.left);
+      const minFont = Math.min(first.fontSize, second.fontSize);
+      if (overlapY > minFont * textCollisionYRatio && overlapX > minWidth * textCollisionXRatio) {
+        risks.push({ first: first.label, second: second.label, overlapX, overlapY });
+      }
+    }
+  }
+  return risks;
+}
+
+// Every other check here is regex-based and tolerates markup no XML parser
+// accepts — an unescaped quote inside an attribute value slipped through as
+// "[ok]" while the renderer refused the file outright.
+function markupRisks(svg) {
+  const risks = [];
+  const stack = [];
+  // The attribute run is lazy so the trailing slash of a self-closing tag is
+  // not swallowed as attribute text — that would leave every <rect/> on the
+  // stack and report the whole document as unclosed.
+  for (const match of svg.matchAll(/<(\/?)([A-Za-z][\w:-]*)((?:[^<>"']|"[^"]*"|'[^']*')*?)\s*(\/?)>/g)) {
+    const [, closing, name, attributeText, selfClosing] = match;
+    if (closing) {
+      const open = stack.pop();
+      if (open !== name) risks.push({ message: `tag mismatch: <${open || "?"}> closed by </${name}>` });
+      continue;
+    }
+    const remainder = attributeText.replace(/\s+[\w:-]+\s*=\s*("[^"]*"|'[^']*')/g, "").trim();
+    if (remainder) risks.push({ message: `<${name}> has unparseable attributes near "${remainder.slice(0, 40)}"` });
+    if (!selfClosing) stack.push(name);
+  }
+  for (const name of stack) risks.push({ message: `unclosed <${name}>` });
+  return risks;
+}
+
+function dividerRisks(svg, segments) {
+  const boxes = inkTextBoxes(svg);
+  const risks = [];
+  for (const seg of segments) {
+    const isDivider = seg.role === "divider" || /data-role=["']divider["']/.test(seg.raw);
+    if (!isDivider || seg.y1 !== seg.y2) continue;
+    const left = Math.min(seg.x1, seg.x2);
+    const right = Math.max(seg.x1, seg.x2);
+    for (const box of boxes) {
+      if (seg.y1 <= box.top || seg.y1 >= box.bottom) continue;
+      if (Math.min(right, box.right) - Math.max(left, box.left) <= 0) continue;
+      risks.push({ label: box.label, y: seg.y1 });
+      break;
+    }
+  }
+  return risks;
+}
+
+function canvasShapeRisks(svg) {
+  const match = /<svg\b([^>]*)>/.exec(svg);
+  if (!match) return [];
+  const a = attrs(match[1]);
+  const viewBox = String(a.viewBox || "").trim().split(/[\s,]+/).map(Number);
+  const width = num(a.width, viewBox.length === 4 ? viewBox[2] : 0);
+  const height = num(a.height, viewBox.length === 4 ? viewBox[3] : 0);
+  if (!(width > 0 && height > 0)) return [];
+  const ratio = width / height;
+  if (ratio <= maxAspectRatio) return [];
+  return [{ width, height, ratio }];
 }
 
 function parsePoints(value) {
@@ -166,7 +332,10 @@ function lineSegments(svg) {
         x2: points[i + 1].x,
         y2: points[i + 1].y,
         strokeWidth: num(a["stroke-width"], 1),
-        markerEnd: a["marker-end"] || "",
+        // marker-end sits on the final vertex only. Attributing it to every
+        // sub-segment reports a short intermediate jog as an oversized
+        // arrowhead that is not drawn there at all.
+        markerEnd: i + 2 === points.length ? a["marker-end"] || "" : "",
       });
     }
   }
@@ -228,6 +397,11 @@ function cardTextLines(svg) {
         label,
         x,
         y,
+        // Carry the authored role through. Without it the title is identified
+        // by "bold and first", which a badge line above the title breaks — the
+        // linter then demands body spacing where the layout applied title
+        // spacing, and every badged card reports a false overlap.
+        role: a["data-role"] || "",
         fontSize: num(a["font-size"], 16),
         fontWeight: a["font-weight"] || "",
         textAnchor: a["text-anchor"] || "start",
@@ -326,6 +500,7 @@ for (const file of files) {
   for (const box of boxes) {
     for (const seg of segments) {
       if (seg.role === "divider" || /data-role=["']divider["']/.test(seg.raw)) continue;
+      if (seg.role === "canvas" || /data-role=["']canvas["']/.test(seg.raw)) continue;
       if (segmentIntersectsBox(seg, box)) {
         hits.push({ label: box.label, segment: seg.raw });
         break;
@@ -335,7 +510,11 @@ for (const file of files) {
   const arrowRisks = arrowheadRisks(segments, markers);
   const rectTextRisks = textInsideRectRisks(svg);
   const lineRisks = textLineOverlapRisks(svg);
-  if (hits.length || arrowRisks.length || rectTextRisks.length || lineRisks.length) {
+  const collisionRisks = textCollisionRisks(svg);
+  const shapeRisks = canvasShapeRisks(svg);
+  const markup = markupRisks(svg);
+  const dividers = dividerRisks(svg, segments);
+  if (markup.length || dividers.length || hits.length || arrowRisks.length || rectTextRisks.length || lineRisks.length || collisionRisks.length || shapeRisks.length) {
     failed = true;
     console.error(`\n[svg layout risk] ${file}`);
     for (const hit of hits.slice(0, 20)) {
@@ -354,7 +533,23 @@ for (const file of files) {
         `- text lines too close in rect ${risk.rect}: "${risk.previous}" -> "${risk.current}", gap ${risk.gap.toFixed(1)} px, min ${risk.minGap.toFixed(1)} px, overlap ${risk.overlap.toFixed(1)} px`
       );
     }
-    const hidden = hits.length + arrowRisks.length + rectTextRisks.length + lineRisks.length - 80;
+    for (const risk of collisionRisks.slice(0, 20)) {
+      console.error(
+        `- text collides with text: "${risk.first}" / "${risk.second}", overlap ${risk.overlapX.toFixed(1)} x ${risk.overlapY.toFixed(1)} px`
+      );
+    }
+    for (const risk of markup.slice(0, 10)) {
+      console.error(`- malformed markup: ${risk.message}`);
+    }
+    for (const risk of dividers.slice(0, 10)) {
+      console.error(`- divider crosses text: "${risk.label}" at y=${risk.y}`);
+    }
+    for (const risk of shapeRisks) {
+      console.error(
+        `- canvas too wide to read at page width: ${risk.width} x ${risk.height} px, ratio ${risk.ratio.toFixed(2)} exceeds ${maxAspectRatio}`
+      );
+    }
+    const hidden = hits.length + arrowRisks.length + rectTextRisks.length + lineRisks.length + collisionRisks.length - 100;
     if (hidden > 0) console.error(`- ${hidden} more`);
   } else {
     console.log(`[ok] ${file}`);
