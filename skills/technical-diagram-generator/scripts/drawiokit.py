@@ -47,6 +47,11 @@ MONO_FAMILY = 'Consolas,Noto Sans Mono CJK SC,monospace'
 
 LABEL_PADDING = 4          # lint: LABEL_PADDING, applied on both sides
 CARD_PADDING = 32          # lint: INSET_PARENT_PADDING, so a badge always clears the arc
+# The 32 px inset is a rule about badges and notes, not about text. Sides keep it
+# so a chip and the lines under it share one left edge; top and bottom drop to 24
+# unless a chip is up there, which claws back 16 px of the emptiness that made a
+# three-line card read as a mostly blank box.
+CARD_PADDING_Y = 24
 DIVIDER_GAP = 12           # lint: status must start >= divider bottom + 8
 GAP_MIN, GAP_MAX = 40, 80  # lint fails outside 32..120; stay inside the readable band
 MARGIN_MIN, MARGIN_MAX = 40, 80
@@ -162,11 +167,15 @@ class Card:
         """The source anchors this card claims, for the cell's metadata."""
         return ' / '.join(text for kind, text in self.body if kind == 'source')
 
+    def padding_top(self):
+        # A chip on the top row has to clear the rounded corner by 32 px.
+        return CARD_PADDING if self.badge or self.step else CARD_PADDING_Y
+
     def content_height(self):
-        height = 0.0
-        if self.badge:
-            height += CHIP_HEIGHT + DIVIDER_GAP
-        height += lineh('title')
+        # The badge shares the title's row rather than taking one of its own: a
+        # row of its own pushed the title down on badged cards only, so no two
+        # titles in a row started at the same height.
+        height = lineh('title')
         for kind, _text in self.body:
             height += lineh(kind)
         if self.status:
@@ -174,11 +183,12 @@ class Card:
         return height
 
     def measure(self):
-        # The step chip sits beside the title, so that row needs both widths.
-        widest = cellw(self.title, 'title') + (
-            chipw(self.step) + CHIP_TITLE_GAP if self.step else 0)
+        # Step chip, title and badge share the top row, so it needs all three.
+        widest = cellw(self.title, 'title')
+        if self.step:
+            widest += chipw(self.step) + CHIP_TITLE_GAP
         if self.badge:
-            widest = max(widest, chipw(self.badge))
+            widest += CHIP_TITLE_GAP + chipw(self.badge)
         for kind, text in self.body:
             widest = max(widest, cellw(text, kind, self.mono_body))
         if self.status:
@@ -186,7 +196,7 @@ class Card:
         # Ceil, not round: a card rounded down leaves its widest label one
         # sub-pixel too wide for the box it was measured against.
         self.width = 2 * CARD_PADDING + math.ceil(widest)
-        self.height = round(2 * CARD_PADDING + self.content_height())
+        self.height = round(self.padding_top() + CARD_PADDING_Y + self.content_height())
 
 
 TONE_LABEL = {
@@ -262,15 +272,33 @@ class Sheet:
             if self.subtitle:
                 y += lineh('figure-question')
             y += GAP_MIN
-        for index, (cards, gap) in enumerate(self.rows):
-            x = self.margin
+        for cards, _gap in self.rows:
             for card in cards:
                 card.measure()
+
+        # Column grid. Sizing each card to its own text leaves every row with its
+        # own column edges — measured on the six-stage figure, the first column
+        # ended at 505, 521 and 450 — and the eye reads that as three unrelated
+        # rows. One width per column position makes the columns line up down the
+        # page, which is the whole point of a grid.
+        gaps = {gap for _cards, gap in self.rows}
+        if len(gaps) > 1:
+            raise ValueError(f'a grid needs one card gap; rows asked for {sorted(gaps)}')
+        gap = gaps.pop() if gaps else 56
+        columns = max((len(cards) for cards, _gap in self.rows), default=0)
+        column_width = [
+            max(cards[position].width for cards, _gap in self.rows if len(cards) > position)
+            for position in range(columns)
+        ]
+
+        for index, (cards, _gap) in enumerate(self.rows):
+            x = self.margin
             # Equalised height keeps neighbouring cards' edges straight; a row of
             # ragged bottoms reads as unrelated boxes.
             height = max(card.height for card in cards)
             for position, card in enumerate(cards):
-                card.x, card.y, card.height = x, y, height
+                card.x, card.y = x, y
+                card.width, card.height = column_width[position], height
                 card.identifier = f'card-{index}-{position}'
                 x += card.width + gap
             y += height + 64
@@ -321,8 +349,12 @@ class Sheet:
                         self._fail(f'[字号过小] role={role} {FONT[role]} < {FONT_MINIMUM[role]}')
                     # The step chip shares the title's row, so the title has less
                     # to work with than the rest of the card.
-                    available = inner - (chipw(card.step) + CHIP_TITLE_GAP
-                                         if card.step and role == 'title' else 0)
+                    available = inner
+                    if role == 'title':
+                        if card.step:
+                            available -= chipw(card.step) + CHIP_TITLE_GAP
+                        if card.badge:
+                            available -= chipw(card.badge) + CHIP_TITLE_GAP
                     needed = chipw(text) if role == 'badge' else cellw(text, role, mono)
                     if needed > available + 0.01:
                         self._fail(f'[文字超宽] {card.identifier} "{text[:30]}" 需 {needed:.0f}px > 可用 {available:.0f}px')
@@ -479,30 +511,35 @@ class Sheet:
                  f'{tone};role=card')
         cells = [self._card_shell(card, row_group, style)]
         inner = card.width - 2 * CARD_PADDING
-        spare = card.height - 2 * CARD_PADDING - card.content_height()
-        # Row equalisation leaves spare height. With a status line the card reads
-        # best as a header block and a footer: body stays at the top and the
-        # divider+status sink to the bottom. Without one, centring the stack
-        # beats leaving the whole surplus under the last line.
-        offset = CARD_PADDING + (spare / 2 if not card.status else 0)
+        spare = card.height - card.padding_top() - CARD_PADDING_Y - card.content_height()
+        # Every card in a row starts its text at the same height, and every status
+        # sits on the same baseline at the foot. Centring the shorter card instead
+        # put its title 30 px below its neighbour's — the row read as two cards
+        # that had nothing to do with each other. The surplus goes to the middle,
+        # where a gap is just breathing room rather than a broken alignment.
+        offset = card.padding_top()
         index = 0
 
-        if card.badge:
-            cells.append(self._chip_cell(
-                f'{card.identifier}-badge', card.identifier, card.identifier, card.badge,
-                (CARD_PADDING, offset, chipw(card.badge), CHIP_HEIGHT)))
-            offset += CHIP_HEIGHT + DIVIDER_GAP
-
+        # Top row: step chip, title, badge. The chips are centred on the title's
+        # line rather than stacked above it.
+        chip_y = offset + (lineh('title') - CHIP_HEIGHT) / 2
         title_x = CARD_PADDING
+        title_right = card.width - CARD_PADDING
         if card.step:
             step_width = chipw(card.step)
             cells.append(self._chip_cell(
                 f'{card.identifier}-step', card.identifier, card.identifier, card.step,
-                (CARD_PADDING, offset + (lineh('title') - CHIP_HEIGHT) / 2, step_width, CHIP_HEIGHT)))
+                (CARD_PADDING, chip_y, step_width, CHIP_HEIGHT)))
             title_x += step_width + CHIP_TITLE_GAP
+        if card.badge:
+            badge_width = chipw(card.badge)
+            cells.append(self._chip_cell(
+                f'{card.identifier}-badge', card.identifier, card.identifier, card.badge,
+                (card.width - CARD_PADDING - badge_width, chip_y, badge_width, CHIP_HEIGHT)))
+            title_right -= badge_width + CHIP_TITLE_GAP
         cells.append(self._cell(f'{card.identifier}-title', 'title', card.identifier, card.title,
                                 self._text_style('title'), card.identifier,
-                                (title_x, offset, card.width - CARD_PADDING - title_x, lineh('title'))))
+                                (title_x, offset, title_right - title_x, lineh('title'))))
         offset += lineh('title')
 
         for kind, text in card.body:

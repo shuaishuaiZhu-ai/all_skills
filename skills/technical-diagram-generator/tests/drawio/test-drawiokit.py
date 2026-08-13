@@ -163,17 +163,32 @@ class DrawiokitTest(unittest.TestCase):
         # lint's INSET_PARENT_PADDING: 32 px from every edge of the rounded card.
         self.assertLessEqual(CARD_PADDING + chipw(card.badge), card.width - CARD_PADDING)
 
-    def test_spare_height_centres_a_card_without_status(self):
+    def test_titles_in_a_row_share_one_baseline(self):
+        """Uneven cards must not stagger their titles — that is what a row is."""
         short = Card("矮卡", ["一行"])
-        tall = Card("高卡", ["一行", "两行", "三行", "四行"])
-        sheet = Sheet("centre")
+        tall = Card("高卡", ["一行", "两行", "三行"], status="失败: 超时")
+        sheet = Sheet("align")
         sheet.row([short, tall])
         sheet.save(self.path)
         xml = self.path.read_text(encoding="utf-8")
-        title = re.search(rf'id="{short.identifier}-title".*?y="([\d.]+)"', xml, re.S)
-        self.assertIsNotNone(title)
-        # Centred, so the title starts below the plain 32 px top padding.
-        self.assertGreater(float(title.group(1)), 32.0)
+        tops = [
+            float(re.search(rf'id="{card.identifier}-title".*?y="([\d.]+)"', xml, re.S).group(1))
+            + card.y
+            for card in (short, tall)
+        ]
+        self.assertEqual(tops[0], tops[1])
+
+    def test_a_row_shares_one_column_grid(self):
+        """Cards in the same column position line up down the page."""
+        sheet = Sheet("grid")
+        sheet.row([Card("窄", ["短"]), Card("宽一些的标题", ["一行说明"])])
+        sheet.row([Card("另一张很宽的卡片标题", ["一行"]), Card("乙", ["一行"])])
+        sheet.save(self.path)
+        first = [row.cards[0] if hasattr(row, "cards") else row[0][0] for row in sheet.rows]
+        second = [row.cards[1] if hasattr(row, "cards") else row[0][1] for row in sheet.rows]
+        for column in (first, second):
+            self.assertEqual({card.x for card in column}, {column[0].x})
+            self.assertEqual({card.width for card in column}, {column[0].width})
 
     def test_status_sits_below_the_divider(self):
         card = Card("带状态", ["一行"], status="失败: 超时")
