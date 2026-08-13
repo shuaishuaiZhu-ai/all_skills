@@ -53,15 +53,29 @@ One figure answers **one learning question**. Never ship a figure that only crop
 
 ```python
 from drawiokit import Sheet, Card
-sheet = Sheet("init-flow", title="NCCL 初始化：三步建场")
-first = Card("① bootstrapInit", ["交换 rank 地址", "bootstrap.cc:412"], status="失败: 网络不可达", tone="input")
-second = Card("② initTransportsRank", ["探测 P2P/NET 通路"], badge="最耗时")
-sheet.row([first, second])          # the author places the cards; the kit sizes them
+sheet = Sheet("init-flow",
+              title="NCCL 初始化：三步建场",
+              subtitle="学习问题：一次 comm 建立要经过谁？")   # the figure's one question
+first = Card("bootstrapInit", [
+    ("body", "交换 rank 地址"),
+    ("source", "bootstrap.cc:412"),      # grey evidence anchor
+    ("failure", "失败: 网络不可达"),      # red exit
+], step="①", tone="input")
+second = Card("initTransportsRank", [
+    ("heading", "探测阶段"),              # bold sub-heading
+    ("code", "ncclTransportP2pSetup()"), # monospace signature
+], step="②", badge="最耗时", status="后续 comm 全靠它")
+sheet.row([first, second])           # the author places the cards; the kit sizes them
 sheet.connect(first, second, label="peer 地址表")
+sheet.legend()                       # only the tones and line styles this figure uses
 sheet.save("figure.drawio")          # raises on any violation
 ```
 
+A body line is `("kind", text)` with kind in `body | heading | code | source | failure`, or a plain string for `body`. `step` and `badge` render as pills; `status` sits below a divider at the card's foot.
+
 `save()` is a real gate. It refuses a sheet that would fail `lint-drawio-layout.py --strict`: font below the role minimum, a label wider than its cell, gaps or margins outside 40–80 px, a badge inside a card's corner arc, a connector routed through a card, a canvas too wide to read at page width, or an emoji-presentation codepoint. It does **not** auto-layout — rows and their order are yours, and a connection it cannot route cleanly raises instead of being drawn through a card.
+
+The sheet carries `background`, which Draw.io turns into a light-dark pair on export, so the figure never renders dark text onto a dark page.
 
 Then export and check:
 

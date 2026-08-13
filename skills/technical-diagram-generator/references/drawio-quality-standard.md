@@ -11,22 +11,27 @@ If an authoritative or manually edited `.drawio` exists, never overwrite it. Pro
 Every relevant Draw.io cell uses one role tag in its style or metadata:
 
 - `role=title`
-- `role=badge`
+- `role=badge` — also the step-number and label pills
 - `role=body`
+- `role=heading` / `role=code` / `role=source` / `role=failure` — the typed body lines: a bold sub-heading, a monospace signature, the grey evidence anchor, the red exit
+- `role=figure-question` — the learning question under the figure title
 - `role=divider`
 - `role=status`
 - `role=note`
 - `role=connector`
-- `role=legend`
+- `role=legend-swatch` / `role=legend-label` — deliberately **not** `legend` or `note`: the gap checks only apply to `ANCHOR_ROLES`, and a legend swatch beside its label is not a layout defect
 - `role=table`
 
 Tags are stable ASCII values and must not be inferred from display text.
 
+The page itself carries `background` on `mxGraphModel`. Draw.io reads it on export and emits a `light-dark()` pair, so the figure has a ground in both themes; a transparent canvas puts dark text on a dark page. Do not model the background as a cell — it would overlap every card and fail `E_OVERLAP`.
+
 ## Typography and spacing
 
 - Body font is at least 18 pt.
-- Badge, status, and note text is at least 16 pt.
+- Badge, status, note, and the typed body lines (`heading`, `code`, `source`, `failure`) are at least 16 pt.
 - Dense-table text is at least 14 pt.
+- A connector label needs no background plate. A plate hugs the glyphs, leaving none of the 10 px a label needs inside its own box; the perpendicular offset already keeps the label off the line.
 - Normal related-element gaps are 40–80 px. Strict checks fail below 32 px or above 120 px.
 - Outer margins are 40–80 px from visible content to the canvas edge.
 - Rounded cards use arc size 12–16. Compact tables may use straight cells as the explicit exception.
