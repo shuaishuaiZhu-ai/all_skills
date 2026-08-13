@@ -110,6 +110,10 @@ function exportDrawio(options = {}) {
     // `-f png -s 2` went from 0 B to a real image across repeated runs.
     "--use-angle=swiftshader",
     "--disable-gpu-sandbox",
+    // Containers default /dev/shm to 64 MB. Chromium's font service fills that
+    // on a figure of any size and dies with "No space left on device (28)" even
+    // though the disk has hundreds of gigabytes free.
+    "--disable-dev-shm-usage",
   ];
   if (platform === "win32") {
     common.push("--no-sandbox");
