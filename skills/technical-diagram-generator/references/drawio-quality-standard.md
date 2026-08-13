@@ -20,7 +20,6 @@ Every relevant Draw.io cell uses one role tag in its style or metadata:
 - `role=note`
 - `role=connector`
 - `role=legend-swatch` / `role=legend-label` — deliberately **not** `legend` or `note`: the gap checks only apply to `ANCHOR_ROLES`, and a legend swatch beside its label is not a layout defect
-- `role=lane` — a swimlane band. Its cards are its children, so their geometry is local to it. A layered figure uses lanes for every row or none: half the cards inside a container and half loose says nothing about which layer the loose ones belong to
 - `role=table`
 
 Tags are stable ASCII values and must not be inferred from display text.
@@ -53,8 +52,6 @@ The page itself carries `background` on `mxGraphModel`. Draw.io reads it on expo
 - Connectors attach by **card-relative anchors** (`exitX/exitY`, `entryX/entryY`), not absolute waypoints. Waypoints freeze a route that the author's first edit invalidates: measured on the same figure, moving one card left an anchored connector outside every card, while the frozen one cut through a card and dropped its label on that card's text. Generators should still compute the expected path and check it at generation time — the check is what waypoints were buying.
 - Cards are containers (`container=1;collapsible=0`) so their lines drag with them, and carry their provenance in an `<object>` wrapper (`data-evidence`, optional `link`, `tooltip`) where Draw.io's Edit Data dialog can see it.
 - `jumpStyle=arc` so two crossing connectors read as crossing rather than joining.
-- A connector that skips a lane runs down a channel to the right of the content, inside the lane band. Outside it, the canvas would have to grow past the 80 px margin; through the middle lane, it would cross that lane's cards.
-- A label on a vertical run needs a horizontal `<mxPoint as="offset">`, not a bigger `mxGeometry y` — y is a vertical nudge, so on a vertical line it slides the label along the line rather than off it. The offset must clear the router's dog-leg as well as the line itself.
 - No connector line or arrowhead may pass through readable text, including titles, values, legends, or notes.
 - A connector with its own label uses an explicit perpendicular `mxGeometry y` offset of at least 16 px. A label background does not make a zero-offset label valid.
 

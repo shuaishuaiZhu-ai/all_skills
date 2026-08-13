@@ -149,57 +149,6 @@ class DrawiokitTest(unittest.TestCase):
         # container=1 makes the card a real group in the editor.
         self.assertIn("container=1", xml)
 
-    def layered_sheet(self):
-        sheet = Sheet("layers", title="五层分工", subtitle="学习问题：哪些事只做一次？")
-        build = Card("clang 单趟编译", [("body", ".cu → host + device")], step="0", tone="input")
-        umd = Card("注册 + 首次建场", [("source", "aica_runtime.cpp")], step="1", badge="仅一次")
-        kmd = Card("AIP_CONTEXT_CREATE", [("body", "分配 VMID")], step="2", tone="feedback")
-        firmware = Card("CP Master 选队列", [("body", "按优先级排队")], step="3")
-        sheet.lane("开发机", [build], subtitle="编译期")
-        sheet.lane("UMD", [umd], subtitle="用户态")
-        sheet.lane("KMD", [kmd], subtitle="内核态")
-        sheet.lane("CP 固件", [firmware], subtitle="芯片上")
-        sheet.connect(build, umd)
-        sheet.connect(umd, kmd, label="建场 ioctl", style="dashed")
-        sheet.connect(umd, firmware, label="doorbell")   # skips the KMD lane
-        sheet.legend()
-        return sheet, (build, umd, kmd, firmware)
-
-    def test_layered_sheet_passes_the_strict_linter(self):
-        sheet, _cards = self.layered_sheet()
-        sheet.save(self.path)
-        result = lint(self.path)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-
-    def test_cards_are_children_of_their_lane_in_local_coordinates(self):
-        sheet, cards = self.layered_sheet()
-        sheet.save(self.path)
-        xml = self.path.read_text(encoding="utf-8")
-        self.assertIn("swimlane;horizontal=0", xml)
-        card = cards[1]
-        shell = re.search(rf'id="{card.identifier}".*?parent="(lane-\d+)".*?<mxGeometry x="([\d.]+)"',
-                          xml, re.S)
-        self.assertIsNotNone(shell, "a laned card must be its lane's child")
-        # Local, not absolute: the same card sits further right on the page.
-        self.assertLess(float(shell.group(2)), card.x)
-
-    def test_a_connector_that_skips_a_lane_takes_the_side_channel(self):
-        sheet, cards = self.layered_sheet()
-        sheet.save(self.path)
-        skipping = next(c for c in sheet.connectors if c["label"] == "doorbell")
-        # Out the right edge and back in the right edge, around the lane between.
-        self.assertEqual(skipping["exit"], (1, 0.5))
-        self.assertEqual(skipping["entry"], (1, 0.5))
-        self.assertIsNotNone(sheet.side_channel)
-        self.assertTrue(all(point[0] <= sheet.side_channel for point in skipping["points"]))
-
-    def test_mixing_lanes_and_bare_rows_is_refused(self):
-        sheet = Sheet("mixed")
-        sheet.lane("UMD", [Card("甲", ["一行"]), Card("乙", ["一行"])])
-        sheet.row([Card("丙", ["一行"]), Card("丁", ["一行"])])
-        with self.assertRaises(ValueError):
-            sheet.save(self.path)
-
     def test_unknown_body_kind_is_refused(self):
         with self.assertRaises(ValueError):
             Card("标题", [("shout", "文本")])
