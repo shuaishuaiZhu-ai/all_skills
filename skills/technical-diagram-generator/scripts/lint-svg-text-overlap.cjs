@@ -10,9 +10,12 @@ if (!files.length) {
   process.exit(2);
 }
 
-const padding = Number(process.env.TEXT_CLEARANCE_PX || 16);
-const nodeTextPadding = Number(process.env.NODE_TEXT_PADDING_PX || 10);
-const maxArrowheadPx = Number(process.env.MAX_ARROWHEAD_PX || 24);
+// Shared with the generators. See assets/layout-constants.json's _readme.
+const TOKENS = require("../assets/layout-constants.json");
+
+const padding = Number(process.env.TEXT_CLEARANCE_PX || TOKENS.textClearancePx);
+const nodeTextPadding = Number(process.env.NODE_TEXT_PADDING_PX || TOKENS.nodeTextPaddingPx);
+const maxArrowheadPx = Number(process.env.MAX_ARROWHEAD_PX || TOKENS.maxArrowheadPx);
 const textCollisionYRatio = Number(process.env.TEXT_COLLISION_Y_RATIO || 0.35);
 const textCollisionXRatio = Number(process.env.TEXT_COLLISION_X_RATIO || 0.25);
 // Beyond this width:height ratio a figure is unreadable at page width: the
@@ -101,7 +104,7 @@ function textBoxes(svg) {
 const fullWidthPattern = /[ᄀ-ᅟ⺀-〾ぁ-㏿㐀-䶿一-鿿ꀀ-꓏가-힣豈-﫿︰-﹏＀-｠￠-￦]/u;
 
 function advanceEm(character) {
-  return fullWidthPattern.test(character) ? 1 : 0.58;
+  return fullWidthPattern.test(character) ? TOKENS.wideGlyphEm : TOKENS.narrowGlyphLintEm;
 }
 
 function inkWidth(label, fontSize) {

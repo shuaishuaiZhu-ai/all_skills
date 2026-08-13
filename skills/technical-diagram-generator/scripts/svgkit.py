@@ -6,7 +6,15 @@
   - 文字宽度不得超出卡片可用宽度（超出则断言失败）
   - 箭头 marker 14px userSpaceOnUse，短段不超过段长 65%
 """
+import json
 import re
+from pathlib import Path
+
+# Shared with drawiokit.py, svg-card-layout.cjs and both linters. Keeping a
+# private copy is how the generator and the linter drifted apart before.
+TOKENS = json.loads(
+    (Path(__file__).resolve().parent.parent / 'assets' / 'layout-constants.json').read_text(encoding='utf-8')
+)
 
 FS = dict(title=58, subtitle=28, section=34, cardTitle=31, fn=27, body=25,
           io=23, small=21, tag=21, th=22, td=22, code=23, src=20, kv=22)
@@ -89,10 +97,10 @@ def esc(s):
 
 
 def textw(s, fs):
-    """估算渲染宽度：CJK/全角按 1.0em，其余按 0.55em"""
+    """估算渲染宽度：CJK/全角按 wideGlyphEm，其余按 narrowGlyphEm"""
     w = 0.0
     for ch in s:
-        w += fs if _CJK.match(ch) else 0.55 * fs
+        w += (TOKENS['wideGlyphEm'] if _CJK.match(ch) else TOKENS['narrowGlyphEm']) * fs
     return w
 
 
@@ -160,13 +168,14 @@ class Doc:
             if prev_fs is None:
                 cur += 0.9 * fs
             else:
-                cur += max(1.35 * prev_fs, 1.2 * max(prev_fs, fs))
+                cur += max(TOKENS['bodyLineGap'] * prev_fs,
+                           TOKENS['bodyLineMinGap'] * max(prev_fs, fs))
             stack.append((cls_, cur, txt, fs))
             if textw(txt, fs) > avail:
                 self.problems.append(f'[宽度超出] "{txt[:34]}…" 需 {textw(txt,fs):.0f}px > 可用 {avail:.0f}px')
             prev_fs = fs
         last_fs = prev_fs or FS['body']
-        h = max(minh, (cur + 0.25 * last_fs + 10 + pad - y))
+        h = max(minh, (cur + 0.25 * last_fs + TOKENS['cardBottomClearancePx'] + pad - y))
         self.rect(x, y, w, round(h), cls, rx)
         if tagtext:
             self.tag(x + pad, y + pad, tagtext, tagfill)

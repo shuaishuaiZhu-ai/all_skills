@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import itertools
+import json
 import math
 import re
 import sys
@@ -38,13 +39,17 @@ INSET_PARENT_ROLES = {
 # renders past the shape outline without changing any geometry. Estimate advance
 # width from the font size: full-width/CJK glyphs take about one em, others 0.55.
 DEFAULT_FONT_SIZE = 12.0
-WIDE_GLYPH_EM = 1.0
-NARROW_GLYPH_EM = 0.55
+# Shared with svgkit.py / drawiokit.py. See assets/layout-constants.json.
+_TOKENS = json.loads(
+    (Path(__file__).resolve().parent.parent / "assets" / "layout-constants.json").read_text(encoding="utf-8")
+)
+WIDE_GLYPH_EM = _TOKENS["wideGlyphEm"]
+NARROW_GLYPH_EM = _TOKENS["narrowGlyphEm"]
 # Monospace advance is wider than proportional sans. Courier New and DejaVu Sans
 # Mono both advance 0.60 em; a Draw.io PNG export measured 0.592 em of ink for a
 # 36-character label at fontSize 20, so 0.60 em models the advance without
 # overestimating (an overestimate would turn this check into a false positive).
-MONO_GLYPH_EM = 0.60
+MONO_GLYPH_EM = _TOKENS["monoGlyphEm"]
 MONO_FAMILY_MARKERS = ("mono", "courier", "consolas", "menlo")
 # CSS "line-height: normal" for Draw.io HTML labels is about 1.2 em. Using the
 # lower bound keeps the wrapped-height check from firing on borderline layouts.

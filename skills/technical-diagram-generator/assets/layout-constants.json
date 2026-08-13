@@ -1,0 +1,23 @@
+{
+  "_readme": "Single source for the numbers that generation and linting must agree on. svgkit.py, drawiokit.py, svg-card-layout.cjs, lint-svg-text-overlap.cjs and lint-drawio-layout.py all read this file. Changing a value here changes both what gets drawn and what gets rejected, which is the point: when the generator and the linter kept private copies they drifted, and a figure that passed generation failed the lint for a rule the generator thought it had satisfied.",
+
+  "bodyLineGap": 1.35,
+  "bodyLineMinGap": 1.2,
+  "titleBodyGap": 1.15,
+  "cardTopPadding": 16,
+  "cardBottomPadding": 14,
+  "cardBottomClearancePx": 10,
+  "overlapTolerancePx": 4,
+
+  "textClearancePx": 16,
+  "nodeTextPaddingPx": 10,
+  "maxArrowheadPx": 24,
+  "markerSizePx": 14,
+  "markerMaxSegmentRatio": 0.65,
+
+  "_glyphNote": "Advance width per em for the Noto Sans CJK SC / Microsoft YaHei stack. Generators lay out at narrowGlyphEm; linters measure at the wider narrowGlyphLintEm so a borderline line is caught rather than shipped. Never make the lint value the smaller of the two.",
+  "wideGlyphEm": 1.0,
+  "narrowGlyphEm": 0.55,
+  "narrowGlyphLintEm": 0.58,
+  "monoGlyphEm": 0.6
+}

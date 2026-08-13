@@ -1,9 +1,12 @@
-const DEFAULT_TOP_PADDING = 16;
-const DEFAULT_BOTTOM_PADDING = 14;
-const DEFAULT_TITLE_BODY_GAP = 1.15;
-const DEFAULT_BODY_LINE_GAP = 1.35;
-const DEFAULT_BODY_LINE_MIN_GAP = 1.2;
-const DEFAULT_OVERLAP_TOLERANCE = 4;
+// Shared with svgkit.py, drawiokit.py and both linters. See the file's _readme.
+const TOKENS = require("../assets/layout-constants.json");
+
+const DEFAULT_TOP_PADDING = TOKENS.cardTopPadding;
+const DEFAULT_BOTTOM_PADDING = TOKENS.cardBottomPadding;
+const DEFAULT_TITLE_BODY_GAP = TOKENS.titleBodyGap;
+const DEFAULT_BODY_LINE_GAP = TOKENS.bodyLineGap;
+const DEFAULT_BODY_LINE_MIN_GAP = TOKENS.bodyLineMinGap;
+const DEFAULT_OVERLAP_TOLERANCE = TOKENS.overlapTolerancePx;
 
 function toNumber(value, fallback = 0) {
   const parsed = Number.parseFloat(value);
