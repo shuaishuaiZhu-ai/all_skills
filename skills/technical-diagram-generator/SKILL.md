@@ -133,7 +133,6 @@ Always **2x** and palette-optimised, both from measurement: 1x leaves 21–25 px
   - **L3 internals:** fields, helpers, local state, formulas; omit from the main learning diagram unless central to its question.
 - Structure stage cards as: **problem -> input -> main action/function -> output -> why needed**.
 - A panorama may cover the full path, but distinguish initialization, per-task execution, and completion feedback when they differ.
-- Do not create a new figure that only crops or repeats another figure. Merge it or give it a distinct learning question.
 - Do not guess hidden RTL, address layout, timing, or side effects. Preserve the unknown explicitly.
 
 For knowledge-sharing pages, whole-article diagram sets, or uncertain information density, read `references/content-quality.md` before drafting.

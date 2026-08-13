@@ -1,6 +1,8 @@
 # Draw.io Quality Standard
 
-This is the strict quality contract for an explicit Draw.io or `both` request; Draw.io is not the release default. Keep the `.drawio` source editable and compare its exported SVG/PNG channels for render parity.
+This is the strict quality contract for the default figure route. Keep the `.drawio` source editable and compare its exported SVG/PNG channels for render parity.
+
+Build the source with `scripts/drawiokit.py`, which enforces every threshold on this page at generation time — a sheet it saves passes `lint-drawio-layout.py --strict`. Hand-editing a `.drawio` afterwards is allowed; re-run the linter when you do.
 
 If an authoritative or manually edited `.drawio` exists, never overwrite it. Produce a `.generated.drawio` or `.generated-vN.drawio` candidate and merge manually. A passing automated gate leaves an immutable `visual-pending` quality report. Record page-width and 100% review in the content-addressed review receipt; only a `ready` receipt bound to the unchanged report and authored artifacts is releasable.
 
@@ -28,6 +30,8 @@ Tags are stable ASCII values and must not be inferred from display text.
 - Normal related-element gaps are 40–80 px. Strict checks fail below 32 px or above 120 px.
 - Outer margins are 40–80 px from visible content to the canvas edge.
 - Rounded cards use arc size 12–16. Compact tables may use straight cells as the explicit exception.
+- `fontFamily` must name a CJK-capable face (`Noto Sans CJK SC`, `Microsoft YaHei`). A bare `Arial` leaves every Chinese glyph to the renderer's substitution. Draw.io splits a style string on `;`, so a font stack may only be comma-separated.
+- The advance-width numbers above live in `assets/layout-constants.json` and are read by the linter and both generators. Change them there, not in one consumer.
 - Inset badges and framed notes inside rounded cards or panels keep at least 32 px of local padding from every parent edge. Never place them in a rounded-corner arc or on top of the parent outline.
 - A label must fit inside its own cell. Draw.io stores the label as a cell property, so an oversized label renders past the outline without changing any geometry and no bounds check can see it. `E_TEXT_OVERFLOW` estimates the advance width from the font size (full-width/CJK about 1.0 em, other glyphs 0.55 em, monospace 0.60 em) and reports two axes:
   - `axis=horizontal` when the cell has no `whiteSpace=wrap` and a single line exceeds the usable width;
@@ -47,6 +51,7 @@ Tags are stable ASCII values and must not be inferred from display text.
 
 - Fit the canvas to the content while retaining the outer margins; do not crop visible strokes or arrowheads.
 - Fail excessive whitespace when the canvas is materially larger than the content without a deliberate panorama or breathing-room rationale.
-- Render a 3000 px preview and the final embedded PNG at `scale 2`.
+- Keep the page's width:height ratio at or under `maxAspectRatio` (4). A wider strip is scaled to illegibility the moment a page embeds it at column width; split the cards across more rows.
+- Render a 3000 px preview and the final embedded PNG at scale 2 — but produce both from the exported SVG with sharp, not from Draw.io's CLI. `-f png` with `-s` or `--width` exits 0 after printing `Empty export data` and writes nothing on some builds (reproduced on Draw.io 28.2.5 / Ubuntu 22.04 / xvfb). `export-drawio.cjs` already does this; the PNGs are flattened onto white so a dark-mode page cannot put dark text on a dark plate.
 - Compare SVG and PNG for content, direction, labels, and connector parity.
 - Visually inspect at page width and 100%; automated checks do not replace visual inspection.

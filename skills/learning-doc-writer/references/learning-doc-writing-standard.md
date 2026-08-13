@@ -145,9 +145,9 @@ related:
 
 1. **svgkit 本身零 drawio 感知**——`svgkit.py` 全文对 `drawio`/`mxCell`/`mxGraphModel` 零命中，它只吐纯 SVG 字符串。
 2. **把整张 SVG 当图片嵌进 `.drawio`**（`shape=image` + base64 data URI）是唯一可能的"关联"方式，但实测在本机 headless `xvfb-run drawio` 环境下**导出失败**（渲成"图片损坏"占位符）；即便调通，换来的也只是一张**不可编辑的贴图**——在 drawio 编辑器里点不进去改任何文字或线条，不构成"生成 drawio 图解"。
-3. **`technical-diagram-generator` 的 drawio 能力不是转换器**：`build-technical-diagram.cjs` 从同一份 JSON spec 并行调用 `renderSvg()` 与 `renderDrawio()`，分别独立生成原生 SVG 元素或原生 `mxCell` 节点——全仓库搜不到任何"解析既有 SVG 再转成 drawio 节点"的代码。
+3. **`technical-diagram-generator` 的 drawio 能力不是转换器**：`drawiokit.py` 直接生成原生 `mxCell` 节点——全仓库搜不到任何"解析既有 SVG 再转成 drawio 节点"的代码。
 
-**结论**：SVG 与 drawio 是两条独立维护的表达，没有"先出 SVG 再转 drawio"的捷径。要拿到内容等价、真正可编辑的 drawio 版本，唯一办法是把内容**重新用 TDG 的 JSON spec 描述一遍**，让它原生生成 `mxCell`；这也意味着 TDG 固定的卡片模板（仅 title/body/status 三段、单一配色、无标签徽章、无行级语义类型）装不下 svgkit 那种信息密度更高的图（实测对照见 `g1-nine-stages` 的"① 编译期打包"卡：同一份内容在 TDG 下语义分层全部塌缩成一段无差别文字）。
+**结论**：SVG 与 drawio 是两条独立维护的表达，没有"先出 SVG 再转 drawio"的捷径。要拿到内容等价、真正可编辑的 drawio 版本，唯一办法是把内容**重新用 `drawiokit.py` 描述一遍**，让它原生生成 `mxCell`；drawiokit 的卡片模板（badge/title/body/divider/status）比早期的三段式宽，但仍装不下 svgkit 那种自由坐标的信息密度（实测对照见 `g1-nine-stages` 的"① 编译期打包"卡：同一份内容在 TDG 下语义分层全部塌缩成一段无差别文字）。
 
 ### 4.4 手写 SVG：几何约束（硬性）
 
@@ -181,7 +181,7 @@ related:
 
 ```bash
 node /root/.claude/skills/technical-diagram-generator/scripts/lint-svg-text-overlap.cjs <svg>
-node /root/.claude/skills/technical-diagram-generator/scripts/render-svg-png-batch.cjs <svg目录> <png目录>
+node /root/.claude/skills/technical-diagram-generator/scripts/render-png.mjs <svg 或目录> [png目录]
 node /root/.claude/skills/technical-diagram-generator/scripts/verify-wiki-diagrams.cjs page.md index.md hot.md log.md
 ```
 
@@ -282,9 +282,8 @@ node /root/.claude/skills/technical-diagram-generator/scripts/verify-wiki-diagra
 - **QA 页样本（类型 C）**：[NCCL qa-log](<../../nccl/qa-log.md>)、[UMD qa-log](<../../grace/umd/qa-log.md>)
 - **端到端讲解样本（类型 B）**：[固件工程师视角：一个 add1 Kernel 如何走到 RguCore](<../../grace/overview/add1-kernel-for-firmware-engineers.md>)
 - **Brief 实例**：[`umd-fatbin-diagram-brief.md`](<../../../.raw/grace/umd-fatbin-diagram-brief.md>)、[`add1-fw-sharing-diagram-brief.md`](<../../../.raw/grace/saxpy-rgu/add1-fw-sharing-diagram-brief.md>)
-- **封装的 skill**：`/root/.claude/skills/diagram-authoring/`（含 `scripts/svgkit.py` 生成器 + `scripts/render-png.mjs` 渲染器）。
-  **2026-08-12 起图相关 skill 由三个合并为两个**：`diagram-authoring`（手写 SVG 图解 + 学习文档，本页对应的那个）与 `technical-diagram-generator`（drawio / 标准组件 / 质量门 / parity）。原 `learning-doc-writer` 与 `svg-diagrams` 已退役，其内容全部并入前者。
-  该目录**不在版本控制下**，故正本已镜像进本仓库：[`.raw/ai/diagram-authoring/`](<../../../.raw/ai/diagram-authoring/SKILL.md>)。
-  换机器时从这里拷回 `~/.claude/skills/`（`node_modules` 需另行 `npm ci`）；若要跨机共享，按 [all_skills 仓库](<./all-skills-shared-repo.md>) 的 `sync.py push` 流程贡献回去。
+- **封装的 skill**：图归 `technical-diagram-generator`（`scripts/drawiokit.py` 默认路线 + `scripts/svgkit.py` SVG 路线 + `scripts/render-png.mjs` 渲染器），文档归 `learning-doc-writer`（本页即其 references 正本）。
+  **2026-08-13 起图相关 skill 收敛为两个**：所有画图能力并入 `technical-diagram-generator`，默认产出 drawio；`diagram-authoring` 与 `svg-diagrams` 已退役删除。文档写作单独成 `learning-doc-writer`。
+  两者都在 [all_skills 仓库](<./all-skills-shared-repo.md>) 版本控制下，换机器用 `sync.py install` 即可（`node_modules` 需另行 `npm ci`）。
 - **几何细节**：`technical-diagram-generator/references/layout-safety.md`
 - **项目级规则**：各项目 `CLAUDE.md` / `AGENTS.md`、[wiki 维护规则](<../../meta/wiki-maintenance-rules.md>)
