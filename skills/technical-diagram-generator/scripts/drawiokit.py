@@ -30,14 +30,14 @@ TOKENS = json.loads((_HERE.parent / 'assets' / 'layout-constants.json').read_tex
 FONT = {
     'title': 26, 'body': 18, 'badge': 16, 'status': 16, 'note': 16, 'table-cell': 14,
     'heading': 19, 'code': 17, 'source': 16, 'failure': 16, 'figure-question': 20,
-    'legend-label': 16,
+    'legend-label': 16, 'lane': 20,
 }
 FONT_MINIMUM = {
     'title': 24, 'body': 18, 'badge': 16, 'status': 16, 'note': 16, 'table-cell': 14,
     'heading': 18, 'code': 16, 'source': 16, 'failure': 16, 'figure-question': 18,
-    'legend-label': 16,
+    'legend-label': 16, 'lane': 18,
 }
-BOLD_ROLES = {'title', 'heading', 'code'}
+BOLD_ROLES = {'title', 'heading', 'code', 'lane'}
 MONO_ROLES = {'code'}
 BODY_KINDS = ('body', 'heading', 'code', 'source', 'failure')
 
@@ -57,6 +57,12 @@ CHIP_HEIGHT = 26
 CHIP_TITLE_GAP = 12
 LEGEND_SWATCH = 26
 LEGEND_ITEM_GAP = 40
+# Draw.io's swimlane title bar. horizontal=0 rotates it to the left edge, which
+# is the shape every layered figure in the wiki draws by hand.
+LANE_TAB = 132
+LANE_PADDING = 24
+LANE_GAP = 48              # lanes need a lane between them for cross-lane routing
+SIDE_CHANNEL_GAP = 44      # clearance from the content to a skip-a-lane connector
 # 16px is the linter's text clearance: a tighter gap puts the label's
 # clearance box on top of its own swatch and reports a connector through text.
 LEGEND_LABEL_GAP = 20
@@ -199,6 +205,29 @@ TONE_LABEL = {
 CONNECTOR_LABEL = {'solid': '主路径', 'dashed': '反馈 / 例外路径'}
 
 
+class Row:
+    """One row of cards, optionally wrapped in a named swimlane.
+
+    A lane is a row that says which layer it belongs to. Draw.io has a native
+    container for exactly this, so the cards become its children and stay with
+    it when the author drags the lane — which is the reason to draw a layered
+    figure here rather than by hand.
+    """
+
+    def __init__(self, cards, gap, lane=None, subtitle=None, tone=None):
+        self.cards = list(cards)
+        self.gap = gap
+        self.lane = lane
+        self.subtitle = subtitle
+        self.tone = tone
+        self.identifier = ''
+        self.x = self.y = self.width = self.height = 0.0
+
+    @property
+    def label(self):
+        return f'{self.lane}\n{self.subtitle}' if self.subtitle else self.lane
+
+
 class Sheet:
     def __init__(self, identifier, title=None, subtitle=None, margin=60):
         if not MARGIN_MIN <= margin <= MARGIN_MAX:
@@ -231,8 +260,8 @@ class Sheet:
         if self.legend_entries is not None:
             return list(self.legend_entries)
         tones, styles = [], []
-        for cards, _gap in self.rows:
-            for card in cards:
+        for row in self.rows:
+            for card in row.cards:
                 if card.tone not in tones:
                     tones.append(card.tone)
         for connector in self.connectors:
@@ -247,8 +276,27 @@ class Sheet:
     def row(self, cards, gap=56):
         if not GAP_MIN <= gap <= GAP_MAX:
             raise ValueError(f'card gap {gap} outside {GAP_MIN}..{GAP_MAX}')
-        self.rows.append((list(cards), gap))
+        self.rows.append(Row(cards, gap))
         return cards
+
+    def lane(self, title, cards, gap=56, subtitle=None, tone=None):
+        """A row inside a named swimlane — one layer of a layered figure.
+
+        Mixing lanes and bare rows in one sheet is refused: half the cards would
+        sit in a container and half on the canvas, and the figure would not say
+        which layer the loose ones belong to.
+        """
+        if not GAP_MIN <= gap <= GAP_MAX:
+            raise ValueError(f'card gap {gap} outside {GAP_MIN}..{GAP_MAX}')
+        self.rows.append(Row(cards, gap, lane=title, subtitle=subtitle, tone=tone))
+        return cards
+
+    def all_cards(self):
+        return [card for row in self.rows for card in row.cards]
+
+    @property
+    def laned(self):
+        return any(row.lane for row in self.rows)
 
     def connect(self, source, target, label=None, style='solid'):
         self.connectors.append({'source': source, 'target': target, 'label': label, 'style': style})
@@ -262,19 +310,47 @@ class Sheet:
             if self.subtitle:
                 y += lineh('figure-question')
             y += GAP_MIN
-        for index, (cards, gap) in enumerate(self.rows):
-            x = self.margin
-            for card in cards:
+        if self.laned and not all(row.lane for row in self.rows):
+            raise ValueError('mixing lanes and bare rows leaves half the cards outside any layer')
+        laned = self.laned
+        # Inside a lane the cards start after the rotated title bar.
+        card_left = self.margin + (LANE_TAB + LANE_PADDING if laned else 0)
+        for index, row in enumerate(self.rows):
+            x = card_left
+            for card in row.cards:
                 card.measure()
             # Equalised height keeps neighbouring cards' edges straight; a row of
             # ragged bottoms reads as unrelated boxes.
-            height = max(card.height for card in cards)
-            for position, card in enumerate(cards):
-                card.x, card.y, card.height = x, y, height
+            height = max(card.height for card in row.cards)
+            row_top = y + (LANE_PADDING if laned else 0)
+            for position, card in enumerate(row.cards):
+                card.x, card.y, card.height = x, row_top, height
                 card.identifier = f'card-{index}-{position}'
-                x += card.width + gap
-            y += height + 64
-        content_bottom = y - 64
+                x += card.width + row.gap
+            row.identifier = f'lane-{index}' if laned else f'row-{index}'
+            row.x, row.y = self.margin, y
+            row.height = height + 2 * LANE_PADDING if laned else height
+            y += row.height + (LANE_GAP if laned else 64)
+        content_bottom = y - (LANE_GAP if laned else 64)
+
+        # A connector that skips a row cannot cross the rows in between without
+        # running into their cards, so it gets a channel down the right — the
+        # same shape a hand-drawn panorama uses for a path that bypasses a layer.
+        # The channel lives inside the lane band: outside it, the canvas would
+        # have to grow past the 80 px margin the linter allows.
+        index_of = {id(card): number for number, row in enumerate(self.rows) for card in row.cards}
+        cards_right = max(card.x + card.width for card in self.all_cards())
+        self.side_channel = None
+        if any(abs(index_of.get(id(c['source']), 0) - index_of.get(id(c['target']), 0)) > 1
+               for c in self.connectors):
+            self.side_channel = cards_right + SIDE_CHANNEL_GAP
+
+        if laned:
+            # Every lane spans the same width, or the layers do not read as a stack.
+            right = (self.side_channel + SIDE_CHANNEL_GAP) if self.side_channel else (
+                cards_right + LANE_PADDING)
+            for row in self.rows:
+                row.width = right - self.margin
 
         self.legend_items = []
         entries = self._resolved_legend() if self.legend_requested else []
@@ -300,7 +376,9 @@ class Sheet:
         legend_right = max((item['text'][0] + item['text'][2] for item in self.legend_items), default=0)
         self.width = round(max(
             [self.margin * 2, legend_right + self.margin] +
-            [card.x + card.width + self.margin for cards, _gap in self.rows for card in cards] +
+            ([self.side_channel + self.margin] if self.side_channel else []) +
+            [row.x + row.width + self.margin for row in self.rows if row.lane] +
+            [card.x + card.width + self.margin for card in self.all_cards()] +
             ([self.margin * 2 + header_width] if header_width else [])
         ))
         self.height = round(content_bottom + self.margin)
@@ -311,8 +389,8 @@ class Sheet:
         self.problems.append(message)
 
     def _check_text(self):
-        for cards, _gap in self.rows:
-            for card in cards:
+        for row in self.rows:
+            for card in row.cards:
                 inner = card.width - 2 * CARD_PADDING
                 for role, text, mono in card.texts():
                     for bad in emoji_chars(text):
@@ -334,7 +412,9 @@ class Sheet:
 
     def _check_geometry(self):
         boxes = [(card.identifier, card.x, card.y, card.width, card.height)
-                 for cards, _gap in self.rows for card in cards]
+                 for card in self.all_cards()]
+        lanes = [(row.identifier, row.x, row.y, row.width, row.height)
+                 for row in self.rows if row.lane]
         for index, item in enumerate(self.legend_items):
             boxes.append((f'legend-{index}-swatch', *item['swatch']))
             boxes.append((f'legend-{index}-label', *item['text']))
@@ -344,13 +424,15 @@ class Sheet:
                 dy = min(first[2] + first[4], second[2] + second[4]) - max(first[2], second[2])
                 if dx > OVERLAP_TOLERANCE and dy > OVERLAP_TOLERANCE:
                     self._fail(f'[卡片重叠] {first[0]} 与 {second[0]}')
-        for cards, gap in self.rows:
-            for left, right in zip(cards, cards[1:]):
+        for row in self.rows:
+            for left, right in zip(row.cards, row.cards[1:]):
                 actual = right.x - (left.x + left.width)
                 if not GAP_MIN <= actual <= GAP_MAX:
                     self._fail(f'[间距越界] {left.identifier}→{right.identifier} {actual:g}px 不在 {GAP_MIN}..{GAP_MAX}')
-        content_right = max([box[1] + box[3] for box in boxes] or [0])
-        content_bottom = max([box[2] + box[4] for box in boxes] or [0])
+        outer = boxes + lanes + ([('side-channel', self.side_channel, 0, 0, 0)]
+                                 if self.side_channel else [])
+        content_right = max([box[1] + box[3] for box in outer] or [0])
+        content_bottom = max([box[2] + box[4] for box in outer] or [0])
         for name, value in (('右', self.width - content_right), ('下', self.height - content_bottom)):
             if not MARGIN_MIN <= value <= MARGIN_MAX:
                 self._fail(f'[画布留白] {name}边距 {value:g}px 不在 {MARGIN_MIN}..{MARGIN_MAX}')
@@ -362,7 +444,7 @@ class Sheet:
             self._fail(f'[画布过宽] {self.width:g}x{self.height:g} 宽高比 {ratio:.2f} > {TOKENS["maxAspectRatio"]}，请拆成多行')
 
     def _check_connectors(self):
-        cards = {id(card): card for cards, _gap in self.rows for card in cards}
+        cards = {id(card): card for card in self.all_cards()}
         for connector in self.connectors:
             for end in ('source', 'target'):
                 if id(connector[end]) not in cards:
@@ -374,6 +456,23 @@ class Sheet:
                             f'[连线穿卡] {connector["source"].identifier}→{connector["target"].identifier} '
                             f'穿过 {card.identifier}'
                         )
+
+    @staticmethod
+    def _sideways_label_shift(connector, jog=0):
+        """How far to push a label off a vertical run, in px.
+
+        mxGeometry's y is a vertical nudge, so on a vertical line it slides the
+        label along the line instead of off it. Measured: raising y from 20 to 58
+        moved the label up into the card it was meant to sit below. The sideways
+        move needs an explicit offset point; y stays at LABEL_OFFSET because the
+        strict linter reads it as the label's clearance.
+        """
+        if not connector['label']:
+            return 0
+        # `jog` is the horizontal dog-leg the router inserts when the two cards
+        # are not aligned; the label has to clear that too, not just the line.
+        half = cellw(connector['label'], 'legend-label') / 2
+        return round(half + TOKENS['textClearancePx'] + jog)
 
     def _route(self):
         """Pick each connector's anchors, and predict the path they produce.
@@ -387,7 +486,7 @@ class Sheet:
         """
         for connector in self.connectors:
             source, target = connector['source'], connector['target']
-            same_row = any(source in cards and target in cards for cards, _gap in self.rows)
+            same_row = any(source in row.cards and target in row.cards for row in self.rows)
             if same_row:
                 y = round(max(source.y, target.y) + min(source.height, target.height) / 2)
                 left, right = (source, target) if source.x < target.x else (target, source)
@@ -398,12 +497,30 @@ class Sheet:
                 forward = source is left
                 connector['exit'] = (1, 0.5) if forward else (0, 0.5)
                 connector['entry'] = (0, 0.5) if forward else (1, 0.5)
+                # A horizontal run offsets the label vertically, so half a line
+                # height is all it has to clear.
+                connector['label_shift'] = 0
                 connector['points'] = [(gutter_start + 2, y), (gutter_end - 2, y)]
+                continue
+            upper, lower = (source, target) if source.y < target.y else (target, source)
+            rows = {id(card): number for number, row in enumerate(self.rows) for card in row.cards}
+            if abs(rows[id(source)] - rows[id(target)]) > 1:
+                # Skipping a row means crossing it, and its cards are in the way.
+                # Out the right edge, down the side channel, back in from the right.
+                channel = self.side_channel
+                connector['exit'] = (1, 0.5)
+                connector['entry'] = (1, 0.5)
+                connector['points'] = [
+                    (source.x + source.width, round(source.y + source.height / 2)),
+                    (channel, round(source.y + source.height / 2)),
+                    (channel, round(target.y + target.height / 2)),
+                    (target.x + target.width, round(target.y + target.height / 2)),
+                ]
+                connector['label_shift'] = self._sideways_label_shift(connector)
                 continue
             # Row to row: out of the bottom edge, across the gap between the two
             # rows, in through the top edge. Draw.io's orthogonal router produces
             # exactly this elbow from these two anchors.
-            upper, lower = (source, target) if source.y < target.y else (target, source)
             lane = round((upper.y + upper.height + lower.y) / 2)
             if lane <= upper.y + upper.height or lane >= lower.y:
                 raise ValueError('connected rows are not separated by a lane; keep them in separate rows')
@@ -414,6 +531,8 @@ class Sheet:
                 (round(upper.x + upper.width / 2), lane),
                 (round(lower.x + lower.width / 2), lane),
             ]
+            connector['label_shift'] = self._sideways_label_shift(
+                connector, abs((upper.x + upper.width / 2) - (lower.x + lower.width / 2)))
 
     # --- emit -----------------------------------------------------------
 
@@ -438,18 +557,39 @@ class Sheet:
                 f'fontFamily={family};{weight}fontColor={colour};'
                 f'fontSize={FONT[role]};role={role}')
 
-    def _card_shell(self, card, row_group, style):
+    def _lane_cell(self, row):
+        """A native Draw.io swimlane: horizontal=0 puts the title bar on the left.
+
+        The cards are its children, so dragging the lane takes its layer with it
+        and dropping a card into it makes the membership real rather than
+        implied by position.
+        """
+        tone = TONE.get(row.tone, '').replace(',', ';')
+        fill = f'{tone};' if tone else 'fillColor=#ffffff;strokeColor=#94a3b8;'
+        style = (f'swimlane;horizontal=0;startSize={LANE_TAB};html=0;rounded=0;strokeWidth=1;'
+                 f'swimlaneFillColor=none;collapsible=0;{fill}'
+                 f'fontFamily={FAMILY};fontStyle=1;fontSize={FONT["lane"]};'
+                 f'fontColor=#0f172a;verticalAlign=middle;align=center;role=lane')
+        return self._cell(row.identifier, 'lane', 'lanes', row.label, style, '1',
+                          (row.x, row.y, row.width, row.height))
+
+    def _card_shell(self, card, row, style):
         """The card cell, wrapped in <object> so it can carry data and a link.
 
         A plain mxCell has nowhere to put either. The wrapper is what Draw.io's
         Edit Data dialog reads and writes, so the provenance survives editing —
         and lint-drawio-layout already understands <object> wrappers.
         """
-        rect = (card.x, card.y, card.width, card.height)
+        # A card inside a lane is that lane's child, so its geometry is local to
+        # the lane; everything else about the card stays in absolute coordinates
+        # because that is what the checks and the routing reason about.
+        parent = row.identifier if row.lane else '1'
+        origin = (row.x, row.y) if row.lane else (0, 0)
+        rect = (card.x - origin[0], card.y - origin[1], card.width, card.height)
         attributes = [
             f'id="{esc(card.identifier)}"',
             'label=""',
-            f'data-role="card" data-diagram-group="{esc(row_group)}"',
+            f'data-role="card" data-diagram-group="{esc(row.identifier or "row")}"',
             f'data-tone="{esc(card.tone)}"',
             f'tooltip="{esc(card.title)}"',
         ]
@@ -458,7 +598,7 @@ class Sheet:
         if card.link:
             attributes.append(f'link="{esc(card.link)}"')
         return (f'        <object {" ".join(attributes)}>'
-                f'<mxCell style="{esc(style)}" vertex="1" parent="1">'
+                f'<mxCell style="{esc(style)}" vertex="1" parent="{esc(parent)}">'
                 f'<mxGeometry x="{rect[0]:g}" y="{rect[1]:g}" width="{rect[2]:g}" '
                 f'height="{rect[3]:g}" as="geometry"/></mxCell></object>')
 
@@ -470,14 +610,14 @@ class Sheet:
                  f'fontColor={self.TEXT_COLOUR["badge"]};fontSize={FONT["badge"]};role=badge')
         return self._cell(identifier, 'badge', group, text, style, parent, rect)
 
-    def _card_cells(self, card, row_group):
+    def _card_cells(self, card, row):
         tone = TONE.get(card.tone, TONE['process']).replace(',', ';')
         # container=1 makes Draw.io treat the card as a real group: its lines
         # drag with it, and a line dropped on it becomes its child instead of a
         # loose cell that happens to sit on top.
         style = (f'rounded=1;arcSize=14;html=0;strokeWidth=2;container=1;collapsible=0;'
                  f'{tone};role=card')
-        cells = [self._card_shell(card, row_group, style)]
+        cells = [self._card_shell(card, row, style)]
         inner = card.width - 2 * CARD_PADDING
         spare = card.height - 2 * CARD_PADDING - card.content_height()
         # Row equalisation leaves spare height. With a status line the card reads
@@ -527,6 +667,8 @@ class Sheet:
         cells = []
         for index, connector in enumerate(self.connectors):
             dashed = 'dashed=1;strokeColor=#ea580c;' if connector['style'] == 'dashed' else 'strokeColor=#475569;'
+            shift = (f'<mxPoint as="offset" x="{connector["label_shift"]:g}" y="0"/>'
+                     if connector['label'] and connector.get('label_shift') else '')
             exit_x, exit_y = connector['exit']
             entry_x, entry_y = connector['entry']
             cells.append(
@@ -547,7 +689,7 @@ class Sheet:
                 f'target="{esc(connector["target"].identifier)}" data-role="connector" '
                 f'data-diagram-group="connectors">'
                 f'<mxGeometry y="{LABEL_OFFSET if connector["label"] else 0}" relative="1" '
-                f'as="geometry"/></mxCell>'
+                f'as="geometry">{shift}</mxGeometry></mxCell>'
             )
         return cells
 
@@ -587,9 +729,11 @@ class Sheet:
                     (self.margin, self.margin + lineh('title'),
                      round(cellw(self.subtitle, 'figure-question')), lineh('figure-question'))))
         cells.extend(self._legend_cells())
-        for index, (cards, _gap) in enumerate(self.rows):
-            for card in cards:
-                cells.extend(self._card_cells(card, f'row-{index}'))
+        for row in self.rows:
+            if row.lane:
+                cells.append(self._lane_cell(row))
+            for card in row.cards:
+                cells.extend(self._card_cells(card, row))
         cells.extend(self._connector_cells())
 
         xml = '\n'.join([

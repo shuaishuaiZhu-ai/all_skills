@@ -92,13 +92,23 @@ function fontSizeOf(a, fallback) {
   return fallback;
 }
 
-function makeTextBox(a, label, clip) {
-  const x = num(a.x);
-  const y = num(a.y);
-  const font = fontSizeOf(a, 16);
-  const width = Math.max(font * 2, label.length * font * 0.58);
+// Lines that are not routing: a rule, the canvas plate, a band outline, a
+// legend swatch. None of them "pass through" the text they sit beside.
+const DECORATIVE_ROLES = new Set(["divider", "canvas", "lane", "legend-swatch"]);
+const DECORATIVE_PATTERN = /data-role=["'](?:divider|canvas|lane|legend-swatch)["']/;
+
+// The clearance box a connector must stay out of. It is deliberately looser
+// than the ink box — a line may not run right up against a glyph — but the two
+// measure the text the same way. When they did not, a Draw.io edge label
+// measured at a flat 0.58 em and anchored as if left-aligned reported a line
+// through text it visibly clears.
+function makeTextBox(a, label, clip, frame = { dx: 0, dy: 0, anchor: "start", fontSize: 16 }) {
+  const font = fontSizeOf(a, frame.fontSize);
+  const x = num(a.x) + frame.dx;
+  const y = num(a.y) + frame.dy;
+  const width = Math.max(font * 2, inkWidth(label, font));
   const height = font * 1.35;
-  const anchor = a["text-anchor"] || "start";
+  const anchor = a["text-anchor"] || frame.anchor;
   let left = x;
   if (anchor === "middle") left = x - width / 2;
   if (anchor === "end") left = x - width;
@@ -118,34 +128,56 @@ function makeTextBox(a, label, clip) {
   return box;
 }
 
+// A rotated label has no axis-aligned box. Measured as if it were horizontal, a
+// swimlane's vertical title sweeps the whole lane and every connector crossing
+// that lane gets reported as passing through it. Find the ranges those labels
+// live in so the measurements can skip them.
+function rotatedRanges(svg) {
+  const ranges = [];
+  const stack = [];
+  for (const match of svg.matchAll(/<(\/?)g\b([^>]*?)(\/?)>/g)) {
+    const [, closing, raw, selfClosing] = match;
+    if (closing) {
+      const open = stack.pop();
+      if (open && open.rotated) ranges.push({ start: open.start, end: match.index + match[0].length });
+      continue;
+    }
+    if (selfClosing) continue;
+    const transform = /\btransform="([^"]*)"/.exec(raw);
+    stack.push({
+      start: match.index,
+      rotated: Boolean(transform && /\b(rotate|matrix|skew)\s*\(/.test(transform[1])),
+    });
+  }
+  return ranges;
+}
+
 function textBoxes(svg) {
-  const boxes = [];
-  const clippedRanges = [];
+  const rotated = rotatedRanges(svg);
+  const isRotated = (index) => rotated.some((range) => index >= range.start && index < range.end);
+  // A <g> that wraps a rect clips its own text: a card's line cannot spill past
+  // the card, whatever the width estimate says.
+  const clips = [];
   for (const group of svg.matchAll(/<g\b[^>]*>([\s\S]*?)<\/g>/g)) {
-    const body = group[1];
-    const rectMatch = body.match(/<rect\b([^>]*)\/?>/);
+    const rectMatch = group[1].match(/<rect\b([^>]*)\/?>/);
     if (!rectMatch) continue;
     const rect = attrs(rectMatch[1]);
-    const clip = {
-      left: num(rect.x),
-      top: num(rect.y),
-      right: num(rect.x) + num(rect.width),
-      bottom: num(rect.y) + num(rect.height),
-    };
-    clippedRanges.push({ start: group.index, end: group.index + group[0].length });
-    for (const textMatch of body.matchAll(/<text\b([^>]*)>([\s\S]*?)<\/text>/g)) {
-      const a = attrs(textMatch[1]);
-      const label = cleanText(textMatch[2]);
-      if (!label) continue;
-      boxes.push(makeTextBox(a, label, clip));
-    }
+    clips.push({
+      start: group.index,
+      end: group.index + group[0].length,
+      clip: {
+        left: num(rect.x),
+        top: num(rect.y),
+        right: num(rect.x) + num(rect.width),
+        bottom: num(rect.y) + num(rect.height),
+      },
+    });
   }
-  for (const match of svg.matchAll(/<text\b([^>]*)>([\s\S]*?)<\/text>/g)) {
-    if (clippedRanges.some((range) => match.index >= range.start && match.index < range.end)) continue;
-    const a = attrs(match[1]);
-    const label = cleanText(match[2]);
-    if (!label) continue;
-    boxes.push(makeTextBox(a, label, null));
+  const boxes = [];
+  for (const [index, entry] of textFrames(svg)) {
+    if (isRotated(index)) continue;
+    const enclosing = clips.find((range) => index >= range.start && index < range.end);
+    boxes.push(makeTextBox(entry.attributes, entry.label, enclosing ? enclosing.clip : null, entry.frame));
   }
   return boxes;
 }
@@ -200,8 +232,8 @@ function translateOf(raw) {
 // wrong on Draw.io exports, which carry those on the wrapping <g>: a centred
 // connector label measured as left-anchored 16px text lands a full label-width
 // to the right of where it draws, on top of whatever card is there.
-function inkTextBoxes(svg) {
-  const boxes = [];
+function textFrames(svg) {
+  const frames = new Map();
   const stack = [{ dx: 0, dy: 0, supported: true, anchor: "start", fontSize: 16 }];
   for (const match of svg.matchAll(/<(\/?)(g|text)\b([^>]*?)(\/?)>/g)) {
     const [, closing, name, raw, selfClosing] = match;
@@ -233,14 +265,22 @@ function inkTextBoxes(svg) {
     // measuring it at coordinates it is not drawn at.
     if (!label || !frame.supported || !own.supported) continue;
     if (a["aria-hidden"] === "true" || fontSizeOf(a, frame.fontSize) < 4) continue;
-    boxes.push(inkBox(a, label, {
-      dx: frame.dx + own.dx,
-      dy: frame.dy + own.dy,
-      anchor: frame.anchor,
-      fontSize: frame.fontSize,
-    }));
+    frames.set(match.index, {
+      attributes: a,
+      label,
+      frame: {
+        dx: frame.dx + own.dx,
+        dy: frame.dy + own.dy,
+        anchor: frame.anchor,
+        fontSize: frame.fontSize,
+      },
+    });
   }
-  return boxes;
+  return frames;
+}
+
+function inkTextBoxes(svg) {
+  return [...textFrames(svg).values()].map((entry) => inkBox(entry.attributes, entry.label, entry.frame));
 }
 
 // Two labels collide when their ink boxes overlap on BOTH axes by more than a
@@ -637,8 +677,10 @@ for (const file of files) {
   const hits = [];
   for (const box of boxes) {
     for (const seg of segments) {
-      if (seg.role === "divider" || /data-role=["']divider["']/.test(seg.raw)) continue;
-      if (seg.role === "canvas" || /data-role=["']canvas["']/.test(seg.raw)) continue;
+      // Decoration, not routing: a rule, the canvas plate, or the outline of a
+      // band. Draw.io draws a swimlane's border as a <path>, so without this a
+      // label sitting near a lane edge reports a connector through it.
+      if (DECORATIVE_ROLES.has(seg.role) || DECORATIVE_PATTERN.test(seg.raw)) continue;
       if (segmentIntersectsBox(seg, box)) {
         hits.push({ label: box.label, segment: seg.raw });
         break;
