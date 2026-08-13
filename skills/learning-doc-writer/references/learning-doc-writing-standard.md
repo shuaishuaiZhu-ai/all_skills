@@ -2,7 +2,7 @@
 type: standard
 title: "学习文档写作与图解标准（AI 自用总纲）"
 created: 2026-08-10
-updated: 2026-08-10
+updated: 2026-08-13
 tags: [ai, writing-standard, diagram, wiki, workflow, qa]
 status: active
 source:
@@ -282,7 +282,7 @@ node /root/.claude/skills/technical-diagram-generator/scripts/verify-wiki-diagra
 - **QA 页样本（类型 C）**：[NCCL qa-log](<../../nccl/qa-log.md>)、[UMD qa-log](<../../grace/umd/qa-log.md>)
 - **端到端讲解样本（类型 B）**：[固件工程师视角：一个 add1 Kernel 如何走到 RguCore](<../../grace/overview/add1-kernel-for-firmware-engineers.md>)
 - **Brief 实例**：[`umd-fatbin-diagram-brief.md`](<../../../.raw/grace/umd-fatbin-diagram-brief.md>)、[`add1-fw-sharing-diagram-brief.md`](<../../../.raw/grace/saxpy-rgu/add1-fw-sharing-diagram-brief.md>)
-- **封装的 skill**：图归 `technical-diagram-generator`（`scripts/drawiokit.py` 默认路线 + `scripts/svgkit.py` SVG 路线 + `scripts/render-png.mjs` 渲染器），文档归 `learning-doc-writer`（本页即其 references 正本）。
+- **封装的 skill**：图归 `technical-diagram-generator`（`scripts/drawiokit.py` 默认路线 + `scripts/svgkit.py` SVG 路线 + `scripts/render-png.mjs` 渲染器），文档归 `learning-doc-writer`（本文件是 wiki `ai/tools/learning-doc-writing-standard.md` 的镜像）。
   **2026-08-13 起图相关 skill 收敛为两个**：所有画图能力并入 `technical-diagram-generator`，默认产出 drawio；`diagram-authoring` 与 `svg-diagrams` 已退役删除。文档写作单独成 `learning-doc-writer`。
   两者都在 [all_skills 仓库](<./all-skills-shared-repo.md>) 版本控制下，换机器用 `sync.py install` 即可（`node_modules` 需另行 `npm ci`）。
 - **几何细节**：`technical-diagram-generator/references/layout-safety.md`

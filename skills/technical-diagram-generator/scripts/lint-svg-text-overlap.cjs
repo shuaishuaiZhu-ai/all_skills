@@ -40,10 +40,45 @@ function cleanText(value) {
   return value.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
 }
 
+// Hand-authored figures set their sizes in a <style> block and give <text> only
+// a class. Measuring those at the 16px default inflates every box by ~28% for a
+// 12.5px body class, which is enough to report connectors passing through text
+// they clear by a wide margin. Resolve the class sizes instead.
+function classFontSizes(svg) {
+  const sizes = new Map();
+  for (const style of svg.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/g)) {
+    for (const rule of style[1].matchAll(/([^{}]+)\{([^}]*)\}/g)) {
+      const declaration = rule[2];
+      const explicit = /font-size\s*:\s*(-?\d*\.?\d+)px/.exec(declaration);
+      // The `font` shorthand puts the size right before the family list.
+      const shorthand = /font\s*:\s*[^;]*?(-?\d*\.?\d+)px/.exec(declaration);
+      const size = Number((explicit || shorthand || [])[1]);
+      if (!Number.isFinite(size)) continue;
+      for (const selector of rule[1].split(",")) {
+        const name = /\.([A-Za-z_][\w-]*)\s*$/.exec(selector.trim());
+        if (name) sizes.set(name[1], size);
+      }
+    }
+  }
+  return sizes;
+}
+
+// Filled per file before any measuring happens.
+let classSizes = new Map();
+
+function fontSizeOf(a, fallback) {
+  const explicit = Number.parseFloat(a["font-size"]);
+  if (Number.isFinite(explicit)) return explicit;
+  for (const name of String(a.class || "").trim().split(/\s+/)) {
+    if (classSizes.has(name)) return classSizes.get(name);
+  }
+  return fallback;
+}
+
 function makeTextBox(a, label, clip) {
   const x = num(a.x);
   const y = num(a.y);
-  const font = num(a["font-size"], 16);
+  const font = fontSizeOf(a, 16);
   const width = Math.max(font * 2, label.length * font * 0.58);
   const height = font * 1.35;
   const anchor = a["text-anchor"] || "start";
@@ -116,7 +151,7 @@ function inkWidth(label, fontSize) {
 // connector clearance reports overlap on text stacks that render fine.
 function inkBox(a, label, frame) {
   const { dx, dy } = frame;
-  const fontSize = num(a["font-size"], frame.fontSize);
+  const fontSize = fontSizeOf(a, frame.fontSize);
   const width = inkWidth(label, fontSize);
   const anchor = a["text-anchor"] || frame.anchor;
   const x = num(a.x) + dx;
@@ -167,7 +202,7 @@ function inkTextBoxes(svg) {
         dy: frame.dy + shift.dy,
         supported: frame.supported && shift.supported,
         anchor: inherited["text-anchor"] || frame.anchor,
-        fontSize: num(inherited["font-size"], frame.fontSize),
+        fontSize: fontSizeOf(inherited, frame.fontSize),
       });
       continue;
     }
@@ -180,7 +215,7 @@ function inkTextBoxes(svg) {
     // matrix-transformed label has no axis-aligned ink box, so skipping it beats
     // measuring it at coordinates it is not drawn at.
     if (!label || !frame.supported || !own.supported) continue;
-    if (a["aria-hidden"] === "true" || num(a["font-size"], frame.fontSize) < 4) continue;
+    if (a["aria-hidden"] === "true" || fontSizeOf(a, frame.fontSize) < 4) continue;
     boxes.push(inkBox(a, label, {
       dx: frame.dx + own.dx,
       dy: frame.dy + own.dy,
@@ -356,21 +391,92 @@ function lineSegments(svg) {
   for (const match of svg.matchAll(/<path\b([^>]*)\/?>/g)) {
     const a = attrs(match[1]);
     if (!a.d) continue;
-    const nums = [...a.d.matchAll(/-?\d+(?:\.\d+)?/g)].map((m) => Number(m[0]));
-    for (let i = 0; i + 3 < nums.length; i += 2) {
-      segments.push({
-        raw: match[0].slice(0, 120),
-        role: a["data-role"] || enclosingCellRole(svg, match.index, roles),
-        x1: nums[i],
-        y1: nums[i + 1],
-        x2: nums[i + 2],
-        y2: nums[i + 3],
-        strokeWidth: num(a["stroke-width"], 1),
-        markerEnd: a["marker-end"] || "",
-      });
+    for (const subpath of pathSubpaths(a.d)) {
+      for (let i = 0; i + 1 < subpath.length; i += 1) {
+        segments.push({
+          raw: match[0].slice(0, 120),
+          role: a["data-role"] || enclosingCellRole(svg, match.index, roles),
+          x1: subpath[i].x,
+          y1: subpath[i].y,
+          x2: subpath[i + 1].x,
+          y2: subpath[i + 1].y,
+          strokeWidth: num(a["stroke-width"], 1),
+          markerEnd: i + 2 === subpath.length ? a["marker-end"] || "" : "",
+        });
+      }
     }
   }
   return segments;
+}
+
+// Number of parameters each path command consumes per repetition, and how many
+// trailing ones are the endpoint. Control points are not vertices: treating them
+// as such is what made every Graphviz SVG report a dozen phantom connectors.
+const PATH_COMMANDS = {
+  m: { arity: 2, endpoint: 2 },
+  l: { arity: 2, endpoint: 2 },
+  h: { arity: 1, endpoint: 1 },
+  v: { arity: 1, endpoint: 1 },
+  c: { arity: 6, endpoint: 2 },
+  s: { arity: 4, endpoint: 2 },
+  q: { arity: 4, endpoint: 2 },
+  t: { arity: 2, endpoint: 2 },
+  a: { arity: 7, endpoint: 2 },
+  z: { arity: 0, endpoint: 0 },
+};
+
+// Reading every number in a `d` attribute as an x,y pair turns "V572 H440" into
+// a diagonal that cuts across the whole figure, and reports it as a connector
+// through whatever text it passes. Parse the commands instead.
+function pathSubpaths(d) {
+  const subpaths = [];
+  let current = [];
+  let x = 0;
+  let y = 0;
+  let startX = 0;
+  let startY = 0;
+  for (const command of String(d).matchAll(/([MmLlHhVvCcSsQqTtAaZz])([^MmLlHhVvCcSsQqTtAaZz]*)/g)) {
+    const letter = command[1];
+    const spec = PATH_COMMANDS[letter.toLowerCase()];
+    if (!spec) continue;
+    const relative = letter === letter.toLowerCase();
+    const numbers = [...command[2].matchAll(/-?\d*\.?\d+(?:[eE][-+]?\d+)?/g)].map((m) => Number(m[0]));
+    if (spec.arity === 0) {
+      if (current.length) current.push({ x: startX, y: startY });
+      x = startX;
+      y = startY;
+      continue;
+    }
+    for (let index = 0; index + spec.arity <= numbers.length; index += spec.arity) {
+      const group = numbers.slice(index, index + spec.arity);
+      if (spec.endpoint === 1) {
+        const value = group[0];
+        if (letter.toLowerCase() === "h") x = relative ? x + value : value;
+        else y = relative ? y + value : value;
+      } else {
+        const [dx, dy] = group.slice(-2);
+        x = relative ? x + dx : dx;
+        y = relative ? y + dy : dy;
+      }
+      // A moveto starts a new subpath; only its repeats are implicit linetos.
+      if (letter.toLowerCase() === "m" && index === 0) {
+        if (current.length > 1) subpaths.push(current);
+        current = [{ x, y }];
+        startX = x;
+        startY = y;
+        continue;
+      }
+      if (!current.length) {
+        current.push({ x, y });
+        startX = x;
+        startY = y;
+        continue;
+      }
+      current.push({ x, y });
+    }
+  }
+  if (current.length > 1) subpaths.push(current);
+  return subpaths;
 }
 
 function arrowheadRisks(segments, markers) {
@@ -416,7 +522,7 @@ function cardTextLines(svg) {
         // linter then demands body spacing where the layout applied title
         // spacing, and every badged card reports a false overlap.
         role: a["data-role"] || "",
-        fontSize: num(a["font-size"], 16),
+        fontSize: fontSizeOf(a, 16),
         fontWeight: a["font-weight"] || "",
         textAnchor: a["text-anchor"] || "start",
       });
@@ -468,7 +574,7 @@ function textInsideRectRisks(svg) {
       const x = num(a.x);
       const y = num(a.y);
       if (x < left || x > right || y < top || y > bottom) continue;
-      const font = num(a["font-size"], 16);
+      const font = fontSizeOf(a, 16);
       const textTop = y - font * 0.9;
       const textBottom = y + font * 0.28;
       if (textTop < top + nodeTextPadding || textBottom > bottom - nodeTextPadding) {
@@ -507,6 +613,7 @@ function segmentIntersectsBox(seg, box) {
 
 for (const file of files) {
   const svg = fs.readFileSync(file, "utf8");
+  classSizes = classFontSizes(svg);
   const boxes = textBoxes(svg);
   const segments = lineSegments(svg);
   const markers = markerDefs(svg);

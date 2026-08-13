@@ -102,7 +102,13 @@ function exportDrawio(options = {}) {
   const common = [
     "--disable-update",
     `--user-data-dir=${path.resolve(options.outputDirectory, ".drawio-profile")}`,
-    "--disable-gpu",
+    // Draw.io renders PNG by screenshotting a hidden BrowserWindow that this
+    // build creates with `offscreen: { deviceScaleFactor: 2 }`. Under plain
+    // --disable-gpu that offscreen surface never produces a frame for a scaled
+    // export, so capturePage() hands back an empty image. Routing GL through
+    // ANGLE's software backend keeps the render CPU-only and fixes it:
+    // `-f png -s 2` went from 0 B to a real image across repeated runs.
+    "--use-angle=swiftshader",
     "--disable-gpu-sandbox",
   ];
   if (platform === "win32") {
@@ -110,11 +116,13 @@ function exportDrawio(options = {}) {
   }
   if (platform === "linux" && getuid() === 0) common.push("--no-sandbox");
   common.push("-b", "0");
-  // Draw.io's own PNG export refuses any scaling flag on some builds: `-f png`
-  // with `-s 2` or `--width 3000` exits 0 after printing "Empty export data" and
-  // writes nothing (reproduced on Draw.io 28.2.5 / Ubuntu 22.04 / xvfb). The SVG
-  // export has no such problem, so Draw.io produces the vector channel and the
-  // raster channels are rasterised from it here — which also gives both PNGs the
+  // Even with ANGLE the screenshot path has a size ceiling: on Draw.io 31.1.8 /
+  // Ubuntu 22.04 / xvfb, `-f png` still returns "Empty export data" (exit 1)
+  // past roughly 1500 px of output — `--width 1800` and `-s 4` fail where
+  // `--width 1500` and `-s 2` succeed, and a bigger xvfb screen does not move
+  // the line. A 3000 px preview is therefore unreachable through Draw.io's own
+  // rasteriser. The SVG export has no ceiling, so Draw.io produces the vector
+  // channel and both PNGs are rasterised from it here, which also gives them the
   // same renderer and palette as the SVG route.
   const jobs = [
     { name: "embedded SVG", output: paths.embeddedSvg, args: [...common, "-x", "-f", "svg", "-e", "-o", paths.embeddedSvg, options.inputPath] },

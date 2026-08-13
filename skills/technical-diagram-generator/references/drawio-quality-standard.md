@@ -52,6 +52,12 @@ Tags are stable ASCII values and must not be inferred from display text.
 - Fit the canvas to the content while retaining the outer margins; do not crop visible strokes or arrowheads.
 - Fail excessive whitespace when the canvas is materially larger than the content without a deliberate panorama or breathing-room rationale.
 - Keep the page's width:height ratio at or under `maxAspectRatio` (4). A wider strip is scaled to illegibility the moment a page embeds it at column width; split the cards across more rows.
-- Render a 3000 px preview and the final embedded PNG at scale 2 — but produce both from the exported SVG with sharp, not from Draw.io's CLI. `-f png` with `-s` or `--width` exits 0 after printing `Empty export data` and writes nothing on some builds (reproduced on Draw.io 28.2.5 / Ubuntu 22.04 / xvfb). `export-drawio.cjs` already does this; the PNGs are flattened onto white so a dark-mode page cannot put dark text on a dark plate.
+- Render a 3000 px preview and the final embedded PNG at scale 2 — but produce both from the exported SVG with sharp, not from Draw.io's CLI. `export-drawio.cjs` already does this; the PNGs are flattened onto white so a dark-mode page cannot put dark text on a dark plate.
+
+  Why, measured on Draw.io 31.1.8 / Ubuntu 22.04 / xvfb: Draw.io rasterises PNG by screenshotting a hidden window (`capturePage`), not by rendering to a canvas — its own source carries a `TODO Use canvas to export images ... (no capturePage)` and a comment calling the fixed capture delay "not a stable solution". Two failures follow from that:
+  - the window is created with `offscreen: { deviceScaleFactor: 2 }`, and under `--disable-gpu` that surface never yields a frame for a scaled export, so `-f png -s 2` writes nothing. `--use-angle=swiftshader` keeps rendering on the CPU while giving ANGLE a working GL path and fixes this class.
+  - a size ceiling remains at roughly 1500 px of output: `--width 1500` and `-s 2` succeed, `--width 1800` and `-s 4` return `Empty export data` (exit 1), and enlarging the xvfb screen does not move the line.
+
+  `-f svg` is unaffected by both, which is why the vector channel is the one Draw.io produces.
 - Compare SVG and PNG for content, direction, labels, and connector parity.
 - Visually inspect at page width and 100%; automated checks do not replace visual inspection.
