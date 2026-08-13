@@ -116,7 +116,7 @@ class Card:
     """
 
     def __init__(self, title, body=(), status=None, badge=None, tone='process',
-                 mono_body=False, step=None):
+                 mono_body=False, step=None, link=None):
         self.title = title
         self.body = [self._body_line(line) for line in body]
         self.status = status
@@ -124,6 +124,10 @@ class Card:
         self.step = step
         self.tone = tone
         self.mono_body = mono_body
+        # Draw.io keeps a cell's link and custom data through every edit and
+        # shows them in Edit Data, so the editable source can carry where the
+        # card came from instead of that living only in the prose beside it.
+        self.link = link
         self.x = self.y = 0.0
         self.width = self.height = 0.0
         self.identifier = ''
@@ -153,6 +157,10 @@ class Card:
         if self.status:
             out.append(('status', self.status, False))
         return out
+
+    def evidence(self):
+        """The source anchors this card claims, for the cell's metadata."""
+        return ' / '.join(text for kind, text in self.body if kind == 'source')
 
     def content_height(self):
         height = 0.0
@@ -368,6 +376,15 @@ class Sheet:
                         )
 
     def _route(self):
+        """Pick each connector's anchors, and predict the path they produce.
+
+        Draw.io routes an edge itself from its exit and entry anchors, and those
+        anchors are card-relative — move a card in the editor and the connector
+        follows. Absolute waypoints would freeze the route instead, so the file
+        would come apart the first time anyone edited it, which is the whole
+        reason this route exists. The predicted path is kept for the
+        generation-time crossing check only; it is not written to the file.
+        """
         for connector in self.connectors:
             source, target = connector['source'], connector['target']
             same_row = any(source in cards and target in cards for cards, _gap in self.rows)
@@ -378,14 +395,21 @@ class Sheet:
                 gutter_end = right.x
                 if gutter_end - gutter_start < 8:
                     raise ValueError('connected cards are not separated by a gutter; place them apart')
+                forward = source is left
+                connector['exit'] = (1, 0.5) if forward else (0, 0.5)
+                connector['entry'] = (0, 0.5) if forward else (1, 0.5)
                 connector['points'] = [(gutter_start + 2, y), (gutter_end - 2, y)]
                 continue
-            # Row to row: drop into the vertical gap between the two rows and
-            # cross there, where no card can be in the way.
+            # Row to row: out of the bottom edge, across the gap between the two
+            # rows, in through the top edge. Draw.io's orthogonal router produces
+            # exactly this elbow from these two anchors.
             upper, lower = (source, target) if source.y < target.y else (target, source)
             lane = round((upper.y + upper.height + lower.y) / 2)
             if lane <= upper.y + upper.height or lane >= lower.y:
                 raise ValueError('connected rows are not separated by a lane; keep them in separate rows')
+            downward = source is upper
+            connector['exit'] = (0.5, 1) if downward else (0.5, 0)
+            connector['entry'] = (0.5, 0) if downward else (0.5, 1)
             connector['points'] = [
                 (round(upper.x + upper.width / 2), lane),
                 (round(lower.x + lower.width / 2), lane),
@@ -414,6 +438,30 @@ class Sheet:
                 f'fontFamily={family};{weight}fontColor={colour};'
                 f'fontSize={FONT[role]};role={role}')
 
+    def _card_shell(self, card, row_group, style):
+        """The card cell, wrapped in <object> so it can carry data and a link.
+
+        A plain mxCell has nowhere to put either. The wrapper is what Draw.io's
+        Edit Data dialog reads and writes, so the provenance survives editing —
+        and lint-drawio-layout already understands <object> wrappers.
+        """
+        rect = (card.x, card.y, card.width, card.height)
+        attributes = [
+            f'id="{esc(card.identifier)}"',
+            'label=""',
+            f'data-role="card" data-diagram-group="{esc(row_group)}"',
+            f'data-tone="{esc(card.tone)}"',
+            f'tooltip="{esc(card.title)}"',
+        ]
+        if card.evidence():
+            attributes.append(f'data-evidence="{esc(card.evidence())}"')
+        if card.link:
+            attributes.append(f'link="{esc(card.link)}"')
+        return (f'        <object {" ".join(attributes)}>'
+                f'<mxCell style="{esc(style)}" vertex="1" parent="1">'
+                f'<mxGeometry x="{rect[0]:g}" y="{rect[1]:g}" width="{rect[2]:g}" '
+                f'height="{rect[3]:g}" as="geometry"/></mxCell></object>')
+
     def _chip_cell(self, identifier, group, parent, text, rect):
         """A badge/step pill. One cell carrying its own label: a separate text
         cell on the same rect would be a 100% overlap and fail E_OVERLAP."""
@@ -424,9 +472,12 @@ class Sheet:
 
     def _card_cells(self, card, row_group):
         tone = TONE.get(card.tone, TONE['process']).replace(',', ';')
-        cells = [self._cell(card.identifier, 'card', row_group, '',
-                            f'rounded=1;arcSize=14;html=0;strokeWidth=2;{tone};role=card',
-                            '1', (card.x, card.y, card.width, card.height))]
+        # container=1 makes Draw.io treat the card as a real group: its lines
+        # drag with it, and a line dropped on it becomes its child instead of a
+        # loose cell that happens to sit on top.
+        style = (f'rounded=1;arcSize=14;html=0;strokeWidth=2;container=1;collapsible=0;'
+                 f'{tone};role=card')
+        cells = [self._card_shell(card, row_group, style)]
         inner = card.width - 2 * CARD_PADDING
         spare = card.height - 2 * CARD_PADDING - card.content_height()
         # Row equalisation leaves spare height. With a status line the card reads
@@ -476,10 +527,18 @@ class Sheet:
         cells = []
         for index, connector in enumerate(self.connectors):
             dashed = 'dashed=1;strokeColor=#ea580c;' if connector['style'] == 'dashed' else 'strokeColor=#475569;'
-            points = ''.join(f'<mxPoint x="{x:g}" y="{y:g}"/>' for x, y in connector['points'])
+            exit_x, exit_y = connector['exit']
+            entry_x, entry_y = connector['entry']
             cells.append(
                 f'        <mxCell id="edge-{index}" value="{esc(connector["label"] or "")}" '
                 f'style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;'
+                # Card-relative anchors, so moving a card in the editor re-routes
+                # the connector instead of leaving it pointing at empty canvas.
+                f'exitX={exit_x};exitY={exit_y};exitDx=0;exitDy=0;'
+                f'entryX={entry_x};entryY={entry_y};entryDx=0;entryDy=0;'
+                # Crossings render as arcs, so two connectors that meet read as
+                # crossing rather than joining.
+                f'jumpStyle=arc;jumpSize=10;'
                 # No labelBackgroundColor: the plate hugs the glyphs, leaving none of the
                 # 10px a label needs inside its own box, and the perpendicular offset
                 # already keeps the label off the line.
@@ -487,8 +546,8 @@ class Sheet:
                 f'edge="1" parent="1" source="{esc(connector["source"].identifier)}" '
                 f'target="{esc(connector["target"].identifier)}" data-role="connector" '
                 f'data-diagram-group="connectors">'
-                f'<mxGeometry y="{LABEL_OFFSET if connector["label"] else 0}" relative="1" as="geometry">'
-                f'<Array as="points">{points}</Array></mxGeometry></mxCell>'
+                f'<mxGeometry y="{LABEL_OFFSET if connector["label"] else 0}" relative="1" '
+                f'as="geometry"/></mxCell>'
             )
         return cells
 

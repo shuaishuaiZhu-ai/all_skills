@@ -36,8 +36,25 @@ function num(value, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+// An entity is one glyph, not four characters. Measuring "&lt;" as written
+// makes a C++ or template signature about three times too wide for the run it
+// covers — "add1&lt;&lt;&lt;1,1&gt;&gt;&gt;" measured 519 px against a real 263 —
+// and the phantom width collides with whatever sits beside the card.
+function decodeEntities(value) {
+  return value
+    .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, code) => String.fromCodePoint(Number.parseInt(code, 16)))
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&apos;", "'")
+    .replaceAll("&nbsp;", " ")
+    // Last, so an escaped entity like "&amp;lt;" does not decode twice.
+    .replaceAll("&amp;", "&");
+}
+
 function cleanText(value) {
-  return value.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+  return decodeEntities(value.replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim();
 }
 
 // Hand-authored figures set their sizes in a <style> block and give <text> only

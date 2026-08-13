@@ -75,7 +75,7 @@ A body line is `("kind", text)` with kind in `body | heading | code | source | f
 
 `save()` is a real gate. It refuses a sheet that would fail `lint-drawio-layout.py --strict`: font below the role minimum, a label wider than its cell, gaps or margins outside 40–80 px, a badge inside a card's corner arc, a connector routed through a card, a canvas too wide to read at page width, or an emoji-presentation codepoint. It does **not** auto-layout — rows and their order are yours, and a connection it cannot route cleanly raises instead of being drawn through a card.
 
-The sheet carries `background`, which Draw.io turns into a light-dark pair on export, so the figure never renders dark text onto a dark page.
+The output leans on what Draw.io gives that an SVG cannot: cards are containers whose lines drag with them, connectors attach by card-relative anchors so the route survives the author's edits, each card carries its evidence (`data-evidence`, optional `link=` via `Card(link=...)`) where Edit Data can see it, and crossing connectors render as arcs. The sheet also carries `background`, which Draw.io turns into a light-dark pair on export, so the figure never renders dark text onto a dark page.
 
 Then export and check:
 

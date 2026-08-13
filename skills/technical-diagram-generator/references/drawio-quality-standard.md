@@ -49,6 +49,9 @@ The page itself carries `background` on `mxGraphModel`. Draw.io reads it on expo
 - A card follows title → body → divider → status/note when those elements are present.
 - Status is below the divider, never above it or mixed into the title band.
 - Connectors use orthogonal routes and dedicated gutters around cards.
+- Connectors attach by **card-relative anchors** (`exitX/exitY`, `entryX/entryY`), not absolute waypoints. Waypoints freeze a route that the author's first edit invalidates: measured on the same figure, moving one card left an anchored connector outside every card, while the frozen one cut through a card and dropped its label on that card's text. Generators should still compute the expected path and check it at generation time — the check is what waypoints were buying.
+- Cards are containers (`container=1;collapsible=0`) so their lines drag with them, and carry their provenance in an `<object>` wrapper (`data-evidence`, optional `link`, `tooltip`) where Draw.io's Edit Data dialog can see it.
+- `jumpStyle=arc` so two crossing connectors read as crossing rather than joining.
 - No connector line or arrowhead may pass through readable text, including titles, values, legends, or notes.
 - A connector with its own label uses an explicit perpendicular `mxGeometry y` offset of at least 16 px. A label background does not make a zero-offset label valid.
 

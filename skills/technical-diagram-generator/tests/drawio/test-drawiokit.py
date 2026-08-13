@@ -121,6 +121,34 @@ class DrawiokitTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn('background="', self.path.read_text(encoding="utf-8"))
 
+    def test_connectors_use_anchors_rather_than_frozen_waypoints(self):
+        """Absolute waypoints survive a card move; the route they describe does not.
+
+        Anchors are card-relative, so Draw.io re-routes when the author drags a
+        card. That is the whole reason this route produces .drawio at all.
+        """
+        sheet, cards = sample_sheet()
+        sheet.save(self.path)
+        xml = self.path.read_text(encoding="utf-8")
+        self.assertNotIn("<Array as=\"points\">", xml)
+        self.assertIn("exitX=", xml)
+        self.assertIn("entryX=", xml)
+        # The predicted path is still computed, so the crossing check has geometry.
+        self.assertTrue(all(connector["points"] for connector in sheet.connectors))
+
+    def test_card_carries_its_provenance_and_is_a_container(self):
+        card = Card("bootstrapInit",
+                    [("body", "交换 rank 地址"), ("source", "bootstrap.cc:412")],
+                    link="https://example.invalid/bootstrap.cc#L412")
+        sheet = Sheet("meta")
+        sheet.row([card, Card("第二张", ["占位"])])
+        sheet.save(self.path)
+        xml = self.path.read_text(encoding="utf-8")
+        self.assertIn('data-evidence="bootstrap.cc:412"', xml)
+        self.assertIn('link="https://example.invalid/bootstrap.cc#L412"', xml)
+        # container=1 makes the card a real group in the editor.
+        self.assertIn("container=1", xml)
+
     def test_unknown_body_kind_is_refused(self):
         with self.assertRaises(ValueError):
             Card("标题", [("shout", "文本")])
