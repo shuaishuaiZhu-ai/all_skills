@@ -9,6 +9,9 @@
   "cardBottomClearancePx": 10,
   "overlapTolerancePx": 4,
 
+  "_aspectNote": "Past this width:height ratio a page-width embed scales the figure down until body text stops being legible. Both routes hold the same line: drawiokit refuses to save one, lint-svg-text-overlap refuses to pass one.",
+  "maxAspectRatio": 4,
+
   "textClearancePx": 16,
   "nodeTextPaddingPx": 10,
   "maxArrowheadPx": 24,

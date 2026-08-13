@@ -20,7 +20,7 @@ const textCollisionYRatio = Number(process.env.TEXT_COLLISION_Y_RATIO || 0.35);
 const textCollisionXRatio = Number(process.env.TEXT_COLLISION_X_RATIO || 0.25);
 // Beyond this width:height ratio a figure is unreadable at page width: the
 // browser scales it down until body text falls below legible size.
-const maxAspectRatio = Number(process.env.MAX_ASPECT_RATIO || 4);
+const maxAspectRatio = Number(process.env.MAX_ASPECT_RATIO || TOKENS.maxAspectRatio);
 let failed = false;
 
 function attrs(raw) {
@@ -114,10 +114,11 @@ function inkWidth(label, fontSize) {
 // Ink extents, not the font bounding box. Cap height ~0.78 em above the
 // baseline and descender ~0.22 em below it; the looser 0.9/0.28 box used for
 // connector clearance reports overlap on text stacks that render fine.
-function inkBox(a, label, dx, dy) {
-  const fontSize = num(a["font-size"], 16);
+function inkBox(a, label, frame) {
+  const { dx, dy } = frame;
+  const fontSize = num(a["font-size"], frame.fontSize);
   const width = inkWidth(label, fontSize);
-  const anchor = a["text-anchor"] || "start";
+  const anchor = a["text-anchor"] || frame.anchor;
   const x = num(a.x) + dx;
   const y = num(a.y) + dy;
   const left = anchor === "middle" ? x - width / 2 : anchor === "end" ? x - width : x;
@@ -142,12 +143,14 @@ function translateOf(raw) {
   return { dx, dy, supported };
 }
 
-// A <text> renders at its own x/y plus every ancestor transform. Comparing raw
-// coordinates across groups puts a legend drawn inside translate(1990,55) on
-// top of the title at x=90 and reports a collision the renderer never draws.
+// A <text> renders at its own x/y plus every ancestor transform, and inherits
+// text-anchor and font-size from them. Reading only the <text> element gets both
+// wrong on Draw.io exports, which carry those on the wrapping <g>: a centred
+// connector label measured as left-anchored 16px text lands a full label-width
+// to the right of where it draws, on top of whatever card is there.
 function inkTextBoxes(svg) {
   const boxes = [];
-  const stack = [{ dx: 0, dy: 0, supported: true }];
+  const stack = [{ dx: 0, dy: 0, supported: true, anchor: "start", fontSize: 16 }];
   for (const match of svg.matchAll(/<(\/?)(g|text)\b([^>]*?)(\/?)>/g)) {
     const [, closing, name, raw, selfClosing] = match;
     const frame = stack[stack.length - 1];
@@ -158,10 +161,13 @@ function inkTextBoxes(svg) {
       }
       if (selfClosing) continue;
       const shift = translateOf(raw);
+      const inherited = attrs(raw);
       stack.push({
         dx: frame.dx + shift.dx,
         dy: frame.dy + shift.dy,
         supported: frame.supported && shift.supported,
+        anchor: inherited["text-anchor"] || frame.anchor,
+        fontSize: num(inherited["font-size"], frame.fontSize),
       });
       continue;
     }
@@ -174,8 +180,13 @@ function inkTextBoxes(svg) {
     // matrix-transformed label has no axis-aligned ink box, so skipping it beats
     // measuring it at coordinates it is not drawn at.
     if (!label || !frame.supported || !own.supported) continue;
-    if (a["aria-hidden"] === "true" || num(a["font-size"], 16) < 4) continue;
-    boxes.push(inkBox(a, label, frame.dx + own.dx, frame.dy + own.dy));
+    if (a["aria-hidden"] === "true" || num(a["font-size"], frame.fontSize) < 4) continue;
+    boxes.push(inkBox(a, label, {
+      dx: frame.dx + own.dx,
+      dy: frame.dy + own.dy,
+      anchor: frame.anchor,
+      fontSize: frame.fontSize,
+    }));
   }
   return boxes;
 }

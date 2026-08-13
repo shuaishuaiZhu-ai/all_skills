@@ -17,6 +17,39 @@ function defaultRunCommand(command, args, options) {
   return childProcess.spawnSync(command, args, { encoding: "utf8", ...options });
 }
 
+const PREVIEW_WIDTH = 3000;
+// Draw.io's SVG export has no background. A wiki page rendered in dark mode
+// would put this figure's dark text on a dark plate, so the raster channels are
+// flattened onto white.
+const CANVAS_WHITE = { r: 255, g: 255, b: 255 };
+
+function defaultRenderPng(svgPath, pngPath, { width, scale } = {}) {
+  let sharpPath;
+  try {
+    sharpPath = require.resolve("sharp");
+  } catch (error) {
+    throw new ExportError("E_SHARP_UNAVAILABLE", `PNG rasterisation needs sharp: ${error.message}`);
+  }
+  // density rasterises the SVG at size instead of upscaling a 72 dpi bitmap,
+  // which is the difference between crisp glyphs and soft ones.
+  const readOptions = { density: 72 * (width ? width / 1000 : scale || 2) };
+  const script =
+    `const sharp=require(${JSON.stringify(sharpPath)});` +
+    `sharp(${JSON.stringify(svgPath)},${JSON.stringify(readOptions)})` +
+    (width ? `.resize({width:${width}})` : "") +
+    `.flatten({background:${JSON.stringify(CANVAS_WHITE)}})` +
+    `.png({palette:true})` +
+    `.toFile(${JSON.stringify(pngPath)})` +
+    `.catch((error)=>{console.error(error.message);process.exit(1);});`;
+  // sharp is async-only and this function's callers are synchronous, so the
+  // pipeline runs in a child process rather than leaving a floating promise.
+  const result = childProcess.spawnSync(process.execPath, ["-e", script], { encoding: "utf8" });
+  if (!result || result.error || result.status !== 0) {
+    const detail = (result && (result.stderr || result.error?.message)) || "unknown error";
+    throw new ExportError("E_DRAWIO_EXPORT", `PNG rasterisation failed: ${detail.trim()}`);
+  }
+}
+
 function outputPaths(options) {
   const inputPath = options.inputPath;
   const outputDirectory = options.outputDirectory;
@@ -77,9 +110,13 @@ function exportDrawio(options = {}) {
   }
   if (platform === "linux" && getuid() === 0) common.push("--no-sandbox");
   common.push("-b", "0");
+  // Draw.io's own PNG export refuses any scaling flag on some builds: `-f png`
+  // with `-s 2` or `--width 3000` exits 0 after printing "Empty export data" and
+  // writes nothing (reproduced on Draw.io 28.2.5 / Ubuntu 22.04 / xvfb). The SVG
+  // export has no such problem, so Draw.io produces the vector channel and the
+  // raster channels are rasterised from it here — which also gives both PNGs the
+  // same renderer and palette as the SVG route.
   const jobs = [
-    { name: "preview PNG", output: paths.previewPng, args: [...common, "-x", "-f", "png", "--width", "3000", "-o", paths.previewPng, options.inputPath] },
-    { name: "embedded PNG", output: paths.embeddedPng, args: [...common, "-x", "-f", "png", "-e", "-s", "2", "-o", paths.embeddedPng, options.inputPath] },
     { name: "embedded SVG", output: paths.embeddedSvg, args: [...common, "-x", "-f", "svg", "-e", "-o", paths.embeddedSvg, options.inputPath] },
   ];
   const commands = [];
@@ -91,6 +128,15 @@ function exportDrawio(options = {}) {
     runExportJob(runCommand, command, args, commandOptions, job.name);
     if (!fileExists(job.output)) {
       throw new ExportError("E_DRAWIO_EXPORT", `${job.name} did not create ${job.output}`);
+    }
+  }
+
+  const renderPng = options.renderPng || defaultRenderPng;
+  renderPng(paths.embeddedSvg, paths.previewPng, { width: PREVIEW_WIDTH });
+  renderPng(paths.embeddedSvg, paths.embeddedPng, { scale: 2 });
+  for (const output of [paths.previewPng, paths.embeddedPng]) {
+    if (!fileExists(output)) {
+      throw new ExportError("E_DRAWIO_EXPORT", `PNG rasterisation did not create ${output}`);
     }
   }
 
