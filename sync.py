@@ -585,6 +585,37 @@ def cmd_doctor(args):
     for c in cands:
         log(f"   - [{c['status']}] {c['name']}")
 
+    # ⑤ SKILL.md 编码损坏
+    bad = mojibake_report()
+    log(f"\n⑤ SKILL.md 编码损坏({len(bad)}):")
+    for path, detail in bad:
+        log(f"   - {path}: {detail}")
+
+
+# UTF-8 正文被按 GBK 解读后再存回 UTF-8 的残迹。「图解」变「鍥捐В」这类,
+# 中文说明照样能读、但 skill 描述里的触发词已经失效——一次真实提交里
+# technical-diagram-generator 的 description 就这样丢掉了全部中文触发词。
+MOJIBAKE_MARKERS = ("鍥", "娴", "鏋", "鐭", "閫", "浠", "锟斤拷", "�")
+
+
+def mojibake_report():
+    """返回 [(相对路径, 说明)];只读,不改任何文件。"""
+    out = []
+    skills_dir = REPO / "skills"
+    if not skills_dir.is_dir():
+        return out
+    for path in sorted(skills_dir.glob("*/SKILL.md")):
+        rel = path.relative_to(REPO)
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError as exc:
+            out.append((rel, f"不是合法 UTF-8({exc.reason})"))
+            continue
+        hits = sorted({m for m in MOJIBAKE_MARKERS if m in text})
+        if hits:
+            out.append((rel, "含乱码特征 " + " ".join(hits)))
+    return out
+
 
 def cmd_uninstall(args):
     dry = args.dry_run
