@@ -186,6 +186,51 @@ class Doc:
                 self.text(x + pad, round(yy), txt, cls_)
         return h
 
+    # ---------- 竖排内存条（低地址在上） ----------
+    def vmap(self, x, y, w, segs, total_h, minh=None, rx=9):
+        """一列竖向内存布局。segs: [(权重, 主标签, 子标签, fill, stroke)]。
+
+        内存布局一律竖排、低地址在上 —— 地址轴天然是纵向的，横排既不合阅读习惯，
+        又受画布宽度限制装不下多少段。多个布局并列成若干列时，同一个段可以横向
+        对照，跨列箭头还能直接画出「某段被搬到了别处」。
+
+        每段高度 = max(minh, 权重占比 × total_h)，minh 保证极小的段仍放得下标签。
+
+        返回 [(主标签, (顶部y, 底部y))] —— 调用方据此把箭头挂到具体段上。
+
+        ⚠️ 跨列箭头与**它们的文字标签**都必须走列间空道，且标签要画在所有色块
+        **之后**（层④）。标签若在色块之前画，会被后绘的不透明色块盖掉前半截 ——
+        实测踩过：右对齐标签只剩尾部两个词。
+        """
+        if minh is None:
+            minh = (FS['cardTitle'] + FS['small']) * TOKENS['bodyLineGap'] \
+                   + 2 * TOKENS['nodeTextPaddingPx']
+        avail = w - 2 * TOKENS['nodeTextPaddingPx']
+        tot = sum(s[0] for s in segs) or 1
+        yy = y
+        out = []
+        for wgt, lab, sub, fill, stroke in segs:
+            h = max(minh, total_h * wgt / tot)
+            self.add(f'<rect x="{x:.0f}" y="{yy:.0f}" width="{w:.0f}" height="{h:.0f}" '
+                     f'rx="{rx}" fill="{fill}" stroke="{stroke}" stroke-width="3"/>')
+            cx = x + w / 2
+            cls = 'cardTitle' if textw(lab, FS['cardTitle']) <= avail else 'io'
+            if textw(lab, FS[cls]) > avail:
+                self.problems.append(
+                    f'[段标签超宽] "{lab}" 需 {textw(lab, FS[cls]):.0f}px > 可用 {avail:.0f}px')
+            if sub:
+                self.text(round(cx), round(yy + h / 2 - 6), lab, cls, anchor='middle')
+                if textw(sub, FS['small']) <= avail:
+                    self.text(round(cx), round(yy + h / 2 + 26), sub, 'small', anchor='middle')
+                else:
+                    self.problems.append(
+                        f'[段子标签超宽] "{sub[:28]}" 需 {textw(sub, FS["small"]):.0f}px > {avail:.0f}px')
+            else:
+                self.text(round(cx), round(yy + h / 2 + 8), lab, cls, anchor='middle')
+            out.append((lab, (yy, yy + h)))
+            yy += h
+        return out
+
     # ---------- 表格（真列对齐；行高按内容，越界断言） ----------
     def table(self, x, y, colw, header, rows, hcls='th', rcls='td', rowh=44, headh=56, rx=14,
               cls='tbl', theadcls='thead'):
