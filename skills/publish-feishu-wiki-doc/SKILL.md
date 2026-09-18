@@ -1,6 +1,6 @@
 ---
 name: publish-feishu-wiki-doc
-description: Publish or replace a Markdown document in Feishu/Lark Wiki using lark-cli, with deterministic SVG-only asset upload, parent-node placement, inherited permissions, placeholder cleanup, and final content verification. Use whenever the user asks to upload, publish, synchronize, replace, or create a Feishu/Lark Wiki cloud document from a local Markdown/wiki page.
+description: Publish or replace a Markdown document in Feishu/Lark Wiki using lark-cli, with deterministic PNG image-block upload, parent-node placement, inherited permissions, placeholder cleanup, and final content verification. Use whenever the user asks to upload, publish, synchronize, replace, or create a Feishu/Lark Wiki cloud document from a local Markdown/wiki page.
 ---
 
 # Publish Feishu Wiki Doc
@@ -13,7 +13,9 @@ Use the bundled script as the default execution path. It avoids loading full doc
 - Profile: pass `--profile <name>` when the user specifies one. Otherwise the script uses `LARK_CLI_PROFILE`, then `default`.
 - Identity: `user`.
 - API: docs v2.
-- Images: local `.svg` only, uploaded as Feishu file cards. Reject PNG, JPG, GIF, WebP, remote image URLs, and missing SVG files.
+- Images: every local image is uploaded as a PNG **image block** (`docs +media-insert --type image`) so it renders inline. Never an SVG file card - an attachment the reader has to click is not a published figure.
+  - `.png` used as-is; `.svg` resolves to its same-named `.png`, else the script rasterises it (rsvg-convert / inkscape / convert / cairosvg); `.jpg/.jpeg/.gif/.webp/.bmp` converted with Pillow.
+  - Remote image URLs and missing files are hard errors. Conversions are written to a scratch directory - never modify the source Markdown or its images to satisfy the publisher.
 - Permissions for new Wiki pages: inherit from the specified parent Wiki node. Never call permission-member APIs unless the user explicitly requests a permission override.
 - Existing target: preserve its current location and permissions.
 - Optional identity guard: pass `--expected-user-open-id <open_id>` only when the user requires publishing as a specific authenticated user.
@@ -48,23 +50,24 @@ python <skill-dir>/scripts/publish_feishu_wiki_doc.py `
   --prepare-only
 ```
 
-This validates UTF-8, strips YAML frontmatter, resolves SVG paths relative to the Markdown file, and prints a compact JSON manifest.
+This validates UTF-8, strips YAML frontmatter, resolves every image to a PNG relative to the Markdown file, and prints a compact JSON manifest. Run it before any publish: an unresolvable image fails here instead of halfway through a write.
 
 ## Required behavior
 
 1. Resolve `<skill-dir>` as the directory containing this `SKILL.md`, then run the bundled script by absolute path.
-2. Treat any SVG validation failure as blocking. Do not silently omit or rasterize images.
+2. Treat any image validation failure as blocking. Do not silently omit an image, and do not fall back to an SVG file card.
 3. For new pages, require `--parent-wiki-url`; do not fall back to `my_library` because that breaks the parent-permission contract.
+   - The child node is created before its content is written. If a later step fails, the node exists but is empty; the error names the URL to resume into. Retry with `--target-wiki-url <that URL>`, never with `--parent-wiki-url` again, or you leave a duplicate page behind.
 4. Do not add collaborators, transfer ownership, or grant `full_access` automatically.
-5. Report the script's final JSON fields: document URL, revision, title, SVG count, placeholder count, and permission mode.
+5. Report the script's final JSON fields: document URL, revision, title, `png_inserted`/`png_expected`, placeholder count, and permission mode.
 6. If authorization is missing, ask the user to authorize the selected lark-cli profile and resume after they confirm.
 
 ## Script output
 
 Success returns one compact JSON object. The important invariants are:
 
-- `svg_expected == svg_uploaded`
+- `png_expected == png_inserted`
 - `placeholder_count == 0`
-- `raster_image_count == 0`
+- `svg_sources == 0`
 - `replacement_char_count == 0`
 - New pages report `permission_mode: inherited_from_parent_no_acl_calls`

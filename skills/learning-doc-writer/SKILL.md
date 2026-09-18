@@ -80,12 +80,33 @@ requested deliverable, not a temporary validation export.
 
 ## Step 5 — Self-check with scripts, not by re-reading
 
-1. Extract every `file:line` → assert the file exists and the line is in range.
+1. Extract every `file:line` → read **that line itself** back with an independent
+   `sed -n "${n}p" <file>` and confirm it contains what the citation claims. "File
+   exists and line is in range" is not enough. Never derive a line number by
+   counting offsets inside a `sed -n 'a,bp'` dump: if the command ended in
+   `head`/`tail`/`cut`, the first line you see may not be line `a`, and the
+   truncation is invisible at the pipe's tail.
 2. Extract every quoted code block → whitespace-normalise → diff against source.
-3. Structure lint: fence parity, heading continuity, blank line before every `---`.
+3. Structure lint: run `python3 <skill-dir>/scripts/lint-md-structure.py page.md` —
+   fence parity, top-level ordered-list numbering, and **nested-list indent >=
+   the parent marker width** (`- ` needs 2, `1. ` needs 3, `10. ` needs 4).
+   Under-indented children silently detach from their parent and render as a
+   separate top-level list. Also check: blank line before every `---`.
 4. For each "X is used for Y" claim, look up **all call sites of X** — this is
    how write-only fields get caught.
 5. Scan for contradiction between a section's code block and its prose.
+5b. After any **structural** edit (insert / move / renumber), `sed -n 'a,bp'` the
+   affected range and read the **raw lines including indentation**. A grep view
+   only answers the pattern you asked for: continuous top-level numbering does
+   **not** prove the children are attached to the right parent.
+5c. **Why-audit the normative statements.** Grep the strong modals (must / never /
+   forbidden / reject / fail — and their CJK equivalents 必须/禁止/不得/一律/
+   直接失败) and check each has a stated reason or consequence. A rule whose
+   violation fails *silently* needs the why most: the reader who does not know
+   the cost will "simplify" the rule away. Ground the why in facts the document
+   already carries, not in generic best practice. ⚠️ The grep only produces
+   candidates — the why is often on the next line or in a table's last column,
+   so **read each hit** rather than trusting the filter (see failure mode 9).
 6. Recount every "N items/N figures/~N lines" **in the doc and in the index pages**.
 
 A negative conclusion ("impossible", "never called") needs evidence too. If

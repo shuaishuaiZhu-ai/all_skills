@@ -1,14 +1,20 @@
 ---
 type: standard
-title: "学习文档写作与图解标准（AI 自用总纲）"
+title: 学习文档写作与图解标准（AI 自用总纲）
 created: 2026-08-10
-updated: 2026-08-13
-tags: [ai, writing-standard, diagram, wiki, workflow, qa]
+updated: 2026-08-24
+tags:
+  - ai
+  - writing-standard
+  - diagram
+  - wiki
+  - workflow
+  - qa
 status: active
 source:
-  - "合并自 wiki/nccl/qa-writing-standards.md（NCCL Q7–Q13 与图 36–40 沉淀，2026-07-16~07-17）"
-  - "合并自 wiki/ai/tools/knowledge-diagram-writing-standard.md（add1 固件组分享版多轮评审，2026-07-13）"
-  - "新增 UMD fatbin→kernel command 长文实战（3300 行 + 16 张手写 SVG + 一轮完整 review，2026-08-06~08-10）"
+  - 合并自 wiki/nccl/qa-writing-standards.md（NCCL Q7–Q13 与图 36–40 沉淀，2026-07-16~07-17）
+  - 合并自 wiki/ai/tools/knowledge-diagram-writing-standard.md（add1 固件组分享版多轮评审，2026-07-13）
+  - 新增 UMD fatbin→kernel command 长文实战（3300 行 + 16 张手写 SVG + 一轮完整 review，2026-08-06~08-10）
 related:
   - "[[wiki/grace/umd/compile/fatbin-to-kernel-command|移植级长文样本]]"
   - "[[wiki/nccl/qa-log|QA 页样本]]"
@@ -86,6 +92,7 @@ related:
   - 不合格：`### 4.2 setBinary` 后紧跟 30 行代码。
   - 合格：`**作用**：把 code object 字节交给 ClBinary 保存，并读 ELF 头的 e_type 判定这份二进制处于哪个编译阶段。这一判定决定后面走不走编译管线。`
 - 函数名不能孤立出现，旁边给一句职责：不写裸 `Thunk_CreateEngine()`，写 `Thunk_CreateEngine()`——向 KMD 请求建立可调度队列，取得后续 doorbell 提交所需能力。
+- 🔴 **删减、搬走或重排小节后，必须同步索引**（2026-08-22 用户要求）。索引页与 `hot.md` 对一个页面的描述是**按当时的目录写的**：小节一旦被删或搬到别的页，索引就还在替一个不存在的内容做宣传，读者点进去找不到。顺序是：最近的域 `index.md` → `wiki/index.md` → `hot.md`（活跃条目最容易留旧描述）→ 内容搬去的新页本身也要进索引；再全文 `grep -n "§<旧小节号>"` 把交叉引用改指新位置，并核对计数类描述（§8 第 8 条）。指向已消失小节的指针比不写更糟。
 - 长文开头给**术语与血缘对照表**（本栈名 ↔ 上游原型名）。移植改名的项目里，这张表能省掉读者一半困惑。
 - 移植级长文的固定骨架：`全景 → 格式规格（字节级）→ 各阶段逐函数 → 移植清单（分区 + 最小路径 + 陷阱）→ 附录（取证命令 + 原始 dump + 源码地图 + 常量速查）`。
 - 附录里放**可复现的取证命令**。别人重跑一遍就能验证，这是长文可信度的地基。
@@ -162,7 +169,7 @@ related:
 
 - **内存布局一律竖排、低地址在上**，用 `Doc.vmap()`（2026-08-19 加进 svgkit）。理由：地址轴天然是纵向的；横排既不合阅读习惯，又受画布宽度限制装不下多少段。`vmap()` 每段高 `max(minh, 权重占比 × 总高)`，`minh` 保证极小的段仍放得下标签，返回 `[(段名, (顶部y, 底部y))]` 供调用方把箭头挂到具体段上；标签超宽会 append 进 `problems`，是真门。
   多个布局**并列成若干竖列**比堆成若干横带更强：同一个段可以横向对照，跨列箭头还能直接画出"某段被搬到了别处"。实测收益——把 `gotDataDevMemory_` 的四个布局并列后，"列③因顶部多一块 GOT 而整体下移，下移高度恰好等于 `data_offset`" 这件事从需要文字解释变成了肉眼可见。
-- **别在 scratchpad 留 svgkit 私有副本**，直接 `sys.path` 指向 skill 里的 canonical 版。svgkit 已把几何常量集中到 `assets/layout-constants.json`（生成器与两个 linter 共用），私有副本正是当初生成器与 linter 漂移的原因。
+- **别在 scratchpad 留 svgkit 私有副本**，直接 `sys.path` 指向 skill 里的 canonical 版。svgkit 已把几何常量集中到 `assets/layout-constants.json`（生成器与两个 linter 共用），私有副本正是当初生成器与 linter 漂移的原因。本次就带着一份会话初期拷的旧副本跑完了全程——所幸常量值逐项相同、图没画错，但那是运气不是纪律。
 
 > 🩸 **踩坑记录（系统性）**：卡片测高探针**漏算了 tag 徽章的 60px**（42 高 + 18 间距），导致所有行高偏短，某张图的箭头起点落进了卡片内部。修法是提供唯一的 `measure()` 入口，**始终按"有徽章"计**，让探针与绘制不可能不一致。教训：凡"算尺寸"与"画元素"是两段代码，就必须共用同一函数，否则迟早不一致。
 
@@ -201,11 +208,18 @@ node /root/.claude/skills/technical-diagram-generator/scripts/verify-wiki-diagra
 
 ### 4.8 文件与引用规则
 
-- ASCII 文件名。PNG 放 `_attachments/<domain>/<topic>/`，SVG 源同名放其 `src/`。
+- ASCII 文件名。**图源与 PNG 都放 `_attachments/<domain>/<topic>/`**，正文只嵌 PNG、只链图源。`_attachments` 允许三种图片资产：
+
+  | 路线 | 入库资产 | 说明 |
+  |---|---|---|
+  | 手写 SVG（`svgkit.py`，见 §4.3 本 vault 首选） | `.svg` + `.png` | `.svg` 是源，正文注明 hand-authored SVG |
+  | Draw.io（`drawiokit.py`） | `.drawio` + `.png` | `.drawio` 是可编辑源；导出链路里的 `.drawio.svg` 只是中间产物，**不入库** |
+
+  两条路线二选一提供图源，PNG 必有。早期页面把 SVG 源集中放在 `<topic>/src/` 子目录（如 `_attachments/grace/umd-fatbin/src/`），沿用不动；新图源与 PNG 同目录并列即可。
 - 正文引用格式：**两行 + 中间一个空行**
   1. 图片嵌入行：`!` + `[详尽中文 alt 文本]` + `(相对路径/gNN-name.png)`
   2. 空行
-  3. 源文件行：`> 图解源文件：` + 指向 `src/gNN-name.svg` 的行内链接（注明 hand-authored SVG）
+  3. 源文件行：`> 图解源文件：` + 指向图源的行内链接（`.drawio` 或 `.svg`，SVG 路线注明 hand-authored SVG）
 
   实例见 [UMD qa-log](<../../grace/umd/qa-log.md>) 每张图下方两行。
 
@@ -220,12 +234,45 @@ node /root/.claude/skills/technical-diagram-generator/scripts/verify-wiki-diagra
 
 1. **引用核验**：脚本提取全文所有 `文件:行`（本次 235 处），逐条检查文件存在、行号未越界。
 2. **代码比对**：提取全文引用的代码块（本次 705 行），去空白后与源码逐行比对。
-3. **结构 lint**：代码围栏配平、标题层级连续、`---` 前有空行（否则被解析成 setext H2）。
+3. **结构 lint**：代码围栏配平、标题层级连续、`---` 前有空行（否则被解析成 setext H2）；**列表嵌套缩进 ≥ 父标记宽度**（`- ` 需 2、`1. ` 需 3、`10. ` 需 4，不足则子项脱离父项）、顶层有序编号连续 —— 这三项由 `learning-doc-writer/scripts/lint-md-structure.py` 一次跑完。
 4. **反向查证关键断言**：对"X 用于 Y"这类因果断言，反查 X 的**全部调用点**。本次由此发现 `kernelCodeHandle_` 根本没有读取点，原先写的用途是错的。
 5. **自相矛盾扫描**：同一节里的代码块与分析文字是否一致（本次抓到代码块漏了 `static_cast<uint32_t>`，恰好与同节的溢出分析相反）。
 6. **数量核对**：文中所有"N 项/N 条"的计数重新数一遍（本次把隐藏参数 24 项纠为 22 项，图解同步改）。
 
 > 结论性断言（含"做不到 / 不可能"）同样需要证据。**若证据与结论冲突，错的是结论，不是证据。**
+
+---
+
+### 5.0 规则的 why 审计
+
+规范类内容里，**只写规则不写理由的句子会被后人当成可以简化掉的东西**。自查时把强规范词（必须／禁止／不得／一律／直接失败／即拒绝）全部 grep 出来，逐条问："违反它会发生什么？"
+
+三条判据：
+
+- **违反后果越是"静默"，越需要 why。** 会立刻崩的规则，读者自然会守；而"不报错、只是结果不对"的规则，读者不知道代价就会顺手改掉它。
+- **why 要挂在本文已有的事实上**，不要写成通用最佳实践。"禁止 copy 因为 RAII" 没有信息量；"禁止 copy 因为 §5.2 已经要求 KMD 拒绝重复释放，说明这是预料中的危险，禁 copy 是让它写不出来" 才有。
+- ⚠️ **grep 只给候选，不给结论。** why 常常在下一行、或表格最后一列里，机械过滤会大量误报（实测一次扫描 164 条规范句、报出 89 条"缺 why"，逐条读下来真正缺的不到十条）。这条和 [§5.1 第 9 条](#51-反复踩到的十种失败模式) 是同一个毛病：**别用过滤视图代替阅读**。
+
+### 5.1 反复踩到的十种失败模式
+
+2026-08-22 对一篇设计长文连做四轮 review，每轮都在修**上一轮新加的内容**。抽出来的模式比"再读一遍"有用得多 —— 上面 6 条是**怎么查**，这 9 条是**去哪儿查**。
+
+| # | 失败模式 | 怎么避免 | 那次的实例 |
+|---|---|---|---|
+| 1 | **补丁式更正**：发现错了，在下面加一个"更正"块，**原处没改** | 更正一律改在**原处**；勘误块只记"曾经错过"，不重复给规则。留着两套说法，读者照先看到的那套做 | 容量校验表格仍写 `.lm_size`，下面紧跟一段说那是错的 |
+| 2 | **没有 `file:line` 的表格格子** | 凡断言外部代码行为的格子，都要有 `file:line`；没核过的**显式标"待核"**，不许凭"看起来该是什么"填 | 一张 hidden 参数表里三格全错，其中"printf buffer 固定 64 KiB"实际是 `4096 × maxWorkGroupSize`，差 16 倍会越界写 |
+| 3 | **抄公式只抄主体** | 把**外层 `if` 和三元判断一起抄**。源码 `cond ? 0 : formula` 里的 `0` 分支往往正是边界 | `code_data_offset` 漏了 `(text_size == 0 \|\| data_bss_size == 0) ? 0` —— 不带全局数据的 kernel 会拿到垃圾值 |
+| 4 | **把变量名当事实** | 追到**赋值点**再下结论，不看名字 | `text_seg_value` 以为是 program header 的 `p_vaddr`，追到 `elf.cpp:482` 才发现是 section 的 `sh_addr`；连"不能用 `sh_addr` 替代"这句禁令都写反了 |
+| 5 | **步骤间缺一跳** | 逐步问"这一步的输入，是上一步的哪个输出"。每步自身正确 ≠ 链条连贯 | 第 1 步选出 code object，第 2 步直接用 `.text` —— 中间"把它当 ELF 解开"整步缺失，metadata 来自 `.note` 也从未提及 |
+| 6 | **前提与产物颠倒** | 写步骤前先分清哪个是**输入前提**、哪个是**产物** | "选择 code object，读取真实 bundle 长度" —— 长度是解析的前提，不是选完的产物 |
+| 7 | **图的语义错误 lint 查不出** | lint 只管几何（重叠/超宽/字号）。**每一格的依据要能指到具体源码行**；目检时问"这一格凭什么这么画" | 把段间空隙画进了 `static_data_block`，实际那段空隙横跨 text 与 data、不在任何 block 内；另一版还漏画了 `.constant` 段 |
+| 8 | **新写的内容最容易错** | 多轮 review 时**优先审上一轮的新增**，别因为"刚写的"就跳过。旧内容已被筛过，新内容没有 | 四轮里有三轮的主要发现都落在上一轮新加的段落和配图上 |
+| 9 | **用过滤视图代替完整阅读** | 结构性编辑（插入/搬移/重编号）后，`sed -n 'a,bp'` **完整读回受影响区间的原始行（含缩进）**；插入前先确认目标项的**内容范围**，别假设"标题行就是全部"。跑 `learning-doc-writer/scripts/lint-md-structure.py` | 插入新第 2 条时用了 `insert(第1条行号+1)`，把第 1 条与它的三个子步骤劈开，子步骤挂到了第 2 条尾部；而我用 `grep "^[0-9]\. "` 自查 —— 缩进子项被过滤掉，看到顶层 1..10 连续就放行了。**编号连续 ≠ 结构正确** |
+| 10 | **把被截断的工具输出当完整输出，据此推算行号** | 引用 `file:line` 前，用**独立命令逐条回读那一行本身**（`sed -n "${n}p" file`），不要从一段 `sed -n "a,bp"` 的输出里数偏移量。命令里带了 `head`/`tail`/`| cut` 时，输出的首行**不一定**是范围的起点 | 用 `sed -n "1210,1235p" ... | tail -60` 读源码，`tail` 把开头 6 行截掉了，我却按"首行=1210"对位，先误判文档原有引用有 4 行偏移，又把自己新写的 `gracevirtualgpu.cpp:1225-1228` 写成了 `1219-1222`。**截断发生在管道尾部，看不出来** |
+
+> [!important] 一条元规则：用户的疑问是高价值信号
+> 那次两个改动最大的发现都由用户一句反问触发 —— "这句是不是写反了"（确实反了）、"program header 的 segment value 有什么作用"（问题的前提本身就是我写错的）。
+> **被问到时先去核，别先解释。** 急着解释会把错误再包装一层。
 
 ---
 
@@ -247,12 +294,15 @@ node /root/.claude/skills/technical-diagram-generator/scripts/verify-wiki-diagra
 - [ ] 每张图有唯一学习问题；无"裁剪重复图"。
 - [ ] lint 通过（或明确记录为已知误报）；逐张目检 + 连线闭合性放大核查 + 分区图半透明自检。
 - [ ] 图例与图内容一致；字号配色跨图一致。
-- [ ] SVG 源与 PNG 同时存在，且 PNG 是最新渲染。
+- [ ] 图源（`.drawio` 或 `.svg`）与 PNG 同时存在于 `_attachments/<domain>/<topic>/`，且 PNG 是最新渲染。
 
 **Wiki**
 
 - [ ] 图片链接与源文件链接有效；UTF-8、无乱码。
 - [ ] 已更新最近的域 `index.md` + `wiki/index.md` + `wiki/hot.md` + `wiki/log.md`。
+- [ ] 结构性编辑（插入/搬移/重编号）后已**完整读回**受影响区间，并跑过 `lint-md-structure.py`（§5.1 第 9 条）。
+- [ ] 本轮**新增**的段落与配图已单独再核一遍——每个表格格子有 `file:line`，每张图的每一格能指到源码行（§5.1 第 2、7、8 条）。
+- [ ] 删减/搬走小节后，索引与 `hot.md` 对该页的描述已同步，不再宣传已经不在页里的内容；搬去的新页已进索引，旧小节号的交叉引用已改指新位置。
 - [ ] 计数类描述（"N 张图""N 条陷阱""~N 行"）已同步，没留过期数字。
 - [ ] Git 只暂存自己的文件，未误碰工作区既有文件；密码未入库。
 
@@ -263,8 +313,13 @@ node /root/.claude/skills/technical-diagram-generator/scripts/verify-wiki-diagra
 - **一次只发一两个工具调用，发出即停、等真实返回；绝不自己续写工具结果。** 单条回复塞太多（长解释＋大段源码＋多调用）会超 max output 被截断，省略号即征兆，进而把幻觉续写的"成功回执"当真——曾因此连续误报落盘成功，实际磁盘为空。
 - **改完必验，且用独立命令交叉确认。** Edit/Write 的 "updated successfully" 只是声明；改完立刻 `grep -c <标记> <file>`，再 `git status --short` 二次确认。**回执与磁盘不符时信磁盘。**
 - 本机 shell 对中文 `echo`、多分号、`grep -n` 正则会输出重复/乱码；用最简单的单命令、纯 ASCII 参数。
+- 🔴 **别把校验串进 `&&` 链**：`grep -c` 零匹配时退出码是 1，`A && grep -c X f && git commit` 会让 commit **静默不执行**，而 `git log` 还显示上一条提交、看着像成功。校验与写操作分开发，或用 `; true` 收尾。（这条踩过两次，第二次是在提交前扫密码时。）
 - 提交只 `add` 自己的文件；提交前扫描密码未泄漏（`git diff --cached | grep -c -F "$SECRET"` 须为 0），**绝不回显密码值**。
 - 声明"做完了"之前先跑独立读回；`git log --oneline -1` / `git ls-remote origin <branch>` 才算推送凭据。
+- 🔴 **改完默认自己提交并推送，不要停下来问"要推吗"**（2026-08-14 用户要求）。一个逻辑完整的改动做完，就把 验证 → 只暂存自己的文件 → commit → push 一次走完。此前每轮都停在"未推送——要推的话说一声"，等于把可自己完成的一步推回给用户。
+  - 本仓库 origin 是 **GitHub**（`shuaishuaiZhu-ai/Know_any`），不是 90.119 的 GitLab —— 泄漏是公开的，所以密码扫描一步都不能省。
+  - push 被拒先 `git fetch` 看分叉，**绝不 force push**；冲突若落在别人的提交上，按双方意图取交集解决，并在回复里说明改了什么（实例：2026-08-14 元数据冲突 —— 保留远端规范化的 tags 列表格式 ＋ 本地更新的日期）。
+  - 仍需先问的例外：会动到别人未推送的提交，或需要 force push / 改写历史。
 
 ---
 
@@ -278,6 +333,9 @@ node /root/.claude/skills/technical-diagram-generator/scripts/verify-wiki-diagra
 6. 移植文里"这段是死代码"和"这条契约与文档不符"往往是最高价值的两类结论——它们直接决定别人要不要抄。
 7. 凡"算尺寸"与"画元素"分两段代码，必须共用同一函数。
 8. 长文里的计数（图数、陷阱数、行数）会过期，改内容时顺手核对索引页里的数字。
+9. 删小节和新增页面一样要动索引——描述、交叉引用、计数三样都要跟着走。索引是读者的入口，不是一次写完就不管的目录。
+10. 一篇长文改过几轮后，**风险从旧内容转移到新内容**。review 的重点要跟着走，否则每轮都在给上一轮擦屁股（见 §5.1 第 8 条）。
+11. 表格是最容易藏错的体裁：它逼你给每格填个值，于是"不知道"就变成了"看起来该是什么"。宁可留空并标"待核"。
 
 ---
 
@@ -287,7 +345,7 @@ node /root/.claude/skills/technical-diagram-generator/scripts/verify-wiki-diagra
 - **QA 页样本（类型 C）**：[NCCL qa-log](<../../nccl/qa-log.md>)、[UMD qa-log](<../../grace/umd/qa-log.md>)
 - **端到端讲解样本（类型 B）**：[固件工程师视角：一个 add1 Kernel 如何走到 RguCore](<../../grace/overview/add1-kernel-for-firmware-engineers.md>)
 - **Brief 实例**：[`umd-fatbin-diagram-brief.md`](<../../../.raw/grace/umd-fatbin-diagram-brief.md>)、[`add1-fw-sharing-diagram-brief.md`](<../../../.raw/grace/saxpy-rgu/add1-fw-sharing-diagram-brief.md>)
-- **封装的 skill**：图归 `technical-diagram-generator`（`scripts/drawiokit.py` 默认路线 + `scripts/svgkit.py` SVG 路线 + `scripts/render-png.mjs` 渲染器），文档归 `learning-doc-writer`（本文件是 wiki `ai/tools/learning-doc-writing-standard.md` 的镜像）。
+- **封装的 skill**：图归 `technical-diagram-generator`（`scripts/drawiokit.py` 默认路线 + `scripts/svgkit.py` SVG 路线 + `scripts/render-png.mjs` 渲染器），文档归 `learning-doc-writer`（本页是其 `references/` 的正本，skill 里是镜像）。
   **2026-08-13 起图相关 skill 收敛为两个**：所有画图能力并入 `technical-diagram-generator`，默认产出 drawio；`diagram-authoring` 与 `svg-diagrams` 已退役删除。文档写作单独成 `learning-doc-writer`。
   两者都在 [all_skills 仓库](<./all-skills-shared-repo.md>) 版本控制下，换机器用 `sync.py install` 即可（`node_modules` 需另行 `npm ci`）。
 - **几何细节**：`technical-diagram-generator/references/layout-safety.md`
