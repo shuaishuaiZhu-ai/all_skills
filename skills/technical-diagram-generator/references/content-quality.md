@@ -12,7 +12,7 @@ Read this reference for knowledge-sharing pages, onboarding material, whole-arti
 6. Figure And Prose Division
 7. Approval Gate
 8. Review Passes
-9. Practical Baseline From `add1`
+9. Practical Baseline
 
 ## 1. Reader Contract
 
@@ -30,8 +30,8 @@ Classify every identifier:
 
 | Level | Examples | Default treatment |
 |---|---|---|
-| L1 system skeleton | UMD, KMD, CP, scheduler, core | Keep |
-| L2 main entries | launch API, `Thunk_*`, main ioctl, dispatch entry | Keep when it explains who calls whom; add one role sentence |
+| L1 system skeleton | user-mode driver, kernel driver, command processor, scheduler, core | Keep |
+| L2 main entries | public launch/submit API, main ioctl or syscall, dispatch entry, interrupt handler | Keep when it explains who calls whom; add one role sentence |
 | L3 internals | helper functions, local variables, map names, bit fields | Move to advanced text/page unless central |
 
 Use this test: if removing the symbol prevents the reader from explaining “who calls whom, why, and what comes out,” keep it. If it only changes the internals of one main function, omit it from the main diagram.
@@ -127,8 +127,8 @@ Perform three independent passes:
 
 Automated lint proves geometry constraints, not teaching quality. Visual review proves appearance, not technical truth. Both are required.
 
-## 9. Practical Baseline From `add1`
+## 9. Practical Baseline
 
-The accepted pattern kept system layers plus main entries and described their roles, while hiding internal containers and field-level mechanics. The approved panorama established direction and path types; later `Init_PC` diagrams were drawn only after current source, real code objects, section/symbol data, and disassembly were checked.
+The accepted pattern in past batches kept system layers plus main entries and described their roles, while hiding internal containers and field-level mechanics. The approved panorama fixed direction and path types first; detail figures were drawn only after current source, real build artifacts, section/symbol data and disassembly had been checked.
 
 Reusable lesson: **reduce cognitive load through structure and explanation, not by deleting the technical backbone.**

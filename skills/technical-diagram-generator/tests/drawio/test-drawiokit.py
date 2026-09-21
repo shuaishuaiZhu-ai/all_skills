@@ -87,6 +87,19 @@ class DrawiokitTest(unittest.TestCase):
             sheet.save(self.path)
         self.assertIn("画布过宽", str(raised.exception))
 
+    def test_narrow_figure_under_a_long_question_is_accepted(self):
+        # Regression (2026-09-21): the whitespace check counted only cards, so a
+        # single narrow card under a long learning question failed with a
+        # right margin of several hundred px although the question itself
+        # reached the margin. Title, question and legend are content too.
+        sheet = Sheet('narrow', title='一个很正常的标题',
+                      subtitle='学习问题：这个很正常的问题为什么在只有一张卡时保存不了？')
+        sheet.row([Card('唯一一张卡', ['一行正文'])])
+        sheet.legend(entries=[('tone', 'process', '一个非常非常非常长的图例说明文字，比卡片还宽')])
+        sheet.save(self.path)
+        result = lint(self.path)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_emoji_presentation_is_refused(self):
         sheet = Sheet("emoji")
         sheet.row([Card("❌ 失败路径", ["说明"]), Card("正常路径", ["说明"])])

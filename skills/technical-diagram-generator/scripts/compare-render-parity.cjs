@@ -270,14 +270,21 @@ function meanAbsoluteRgbDifference(first, second) {
 }
 
 function drawioVersion() {
-  const executable = "C:\\Program Files\\draw.io\\draw.io.exe";
-  if (process.platform !== "win32" || !fs.existsSync(executable)) return null;
+  // Best effort, never fatal: the version is recorded in the report for
+  // reproducibility, and null means "not determinable on this host".
+  const executable = process.env.DRAWIO_EXECUTABLE
+    || (process.platform === "win32" ? "C:\\Program Files\\draw.io\\draw.io.exe" : "/usr/bin/drawio");
+  if (!fs.existsSync(executable)) return null;
   try {
-    return execFileSync(
-      "powershell.exe",
-      ["-NoProfile", "-Command", `(Get-Item -LiteralPath '${executable}').VersionInfo.ProductVersion`],
-      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
-    ).trim() || null;
+    if (process.platform === "win32") {
+      return execFileSync(
+        "powershell.exe",
+        ["-NoProfile", "-Command", `(Get-Item -LiteralPath '${executable}').VersionInfo.ProductVersion`],
+        { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+      ).trim() || null;
+    }
+    // Debian/Ubuntu package metadata; avoids launching Electron just for --version.
+    return execFileSync("dpkg-query", ["-W", "-f=${Version}", "drawio"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim() || null;
   } catch {
     return null;
   }

@@ -325,6 +325,10 @@ class Sheet:
             header_width = cellw(self.title, 'title')
             if self.subtitle:
                 header_width = max(header_width, cellw(self.subtitle, 'figure-question'))
+        # Kept for _check_geometry: the title and the learning question are
+        # content too. A narrow figure under a long question used to fail the
+        # whitespace check because only cards were counted (found 2026-09-21).
+        self.header_width = header_width
         legend_right = max((item['text'][0] + item['text'][2] for item in self.legend_items), default=0)
         self.width = round(max(
             [self.margin * 2, legend_right + self.margin] +
@@ -381,8 +385,13 @@ class Sheet:
                 actual = right.x - (left.x + left.width)
                 if not GAP_MIN <= actual <= GAP_MAX:
                     self._fail(f'[间距越界] {left.identifier}→{right.identifier} {actual:g}px 不在 {GAP_MIN}..{GAP_MAX}')
-        content_right = max([box[1] + box[3] for box in boxes] or [0])
-        content_bottom = max([box[2] + box[4] for box in boxes] or [0])
+        content_right = max([box[1] + box[3] for box in boxes]
+                            + [self.margin + getattr(self, 'header_width', 0)]
+                            + [item['text'][0] + item['text'][2] for item in self.legend_items]
+                            or [0])
+        content_bottom = max([box[2] + box[4] for box in boxes]
+                             + [item['text'][1] + item['text'][3] for item in self.legend_items]
+                             or [0])
         for name, value in (('右', self.width - content_right), ('下', self.height - content_bottom)):
             if not MARGIN_MIN <= value <= MARGIN_MAX:
                 self._fail(f'[画布留白] {name}边距 {value:g}px 不在 {MARGIN_MIN}..{MARGIN_MAX}')

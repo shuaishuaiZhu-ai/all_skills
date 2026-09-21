@@ -4,9 +4,7 @@ Use this reference whenever a diagram has arrows, labels, subgraph titles, or de
 
 ## Strict quality profile
 
-Apply strict checks to the requested channel. SVG remains the default release channel; explicit Draw.io or `both` also requires Draw.io SVG/PNG render parity. Use previews only for validation unless the user or target requests them as deliverables. A failure is any connector through text, unreadable text, unsafe gap, clipped content, or excessive whitespace under `drawio-quality-standard.md`.
-
-The quality report remains immutable at `visual-pending`. Page-width and 100% review produce a separate content-addressed receipt; only a `ready` receipt bound to unchanged report and artifact hashes permits release. Automated checks never substitute for visual review.
+Apply the strict checks to whichever route the figure uses: `lint-drawio-layout.py --strict` for a `.drawio`, `lint-svg-text-overlap.cjs` for an `.svg`. A failure is any connector through text, unreadable text, unsafe gap, clipped content, or excessive whitespace under `drawio-quality-standard.md`. Automated checks never substitute for the page-width and 100% visual review.
 
 ## Non-Negotiable Rule
 

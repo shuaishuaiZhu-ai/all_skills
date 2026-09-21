@@ -14,9 +14,8 @@ Copy this file into the task workspace or evidence directory and replace every `
 - arrow_semantics: <fill what each color/style means: call, data, notification, ownership, completion>
 - output_assets: <fill target Draw.io/SVG/DOT/MMD and rendered PNG paths>
 - editable_source: drawio | svg | dot | mmd
-- render_outputs: <fill exported SVG/PNG paths when applicable>
+- render_outputs: <fill the exported .drawio.png (or .svg + .png on the SVG route) paths>
 - manual_edit_policy: preserve | generated-candidate
-- adversarial_checks: required | reason for exemption
 - pilot_gate: <fill required, explicitly waived by user, or not needed for one simple figure>
 - approval_baseline: <fill approved exemplar/style path, or not applicable with reason>
 - acceptance_checks: <fill page-width, 100% view, lint, links, UTF-8, and task-specific checks>
