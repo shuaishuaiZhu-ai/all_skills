@@ -115,10 +115,13 @@ evidence contradicts the conclusion, the conclusion is wrong.
 ## Step 6 — Publish
 
 ```bash
-node <tdg-dir>/scripts/verify-wiki-diagrams.cjs page.md index.md hot.md log.md
+node <tdg-dir>/scripts/verify-wiki-diagrams.cjs page.md <each index page you touched>
 ```
 
-Update the nearest domain index plus the vault's `index.md`, `hot.md`, `log.md`.
+`<tdg-dir>` is the `technical-diagram-generator` skill directory. Update the
+nearest domain index and whatever vault-level pages the target keeps (e.g.
+`index.md`, `hot.md`, `log.md`) — follow the target's convention, don't create
+new ones.
 Stage only your own files; scan the staged diff for secrets and never echo a
 password. Verify with independent reads (`git status --short`,
 `git log --oneline -1`, `git ls-remote`) — a tool's success message is a claim,

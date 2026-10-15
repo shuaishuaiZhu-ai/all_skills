@@ -5,7 +5,7 @@ description: Publish or replace a Markdown document in Feishu/Lark Wiki using la
 
 # Publish Feishu Wiki Doc
 
-Use the bundled script as the default execution path. It avoids loading full documents into model context and performs the repetitive media workflow deterministically. This skill is portable: it does not assume any specific Feishu/Lark tenant, account, profile, or local path.
+Use the bundled script as the default execution path; the commands below are single-line so they run unchanged in bash and PowerShell (use `python3` where `python` is not Python 3). It avoids loading full documents into model context and performs the repetitive media workflow deterministically. This skill is portable: it does not assume any specific Feishu/Lark tenant, account, profile, or local path.
 
 ## Requirements And Defaults
 
@@ -24,18 +24,14 @@ Use the bundled script as the default execution path. It avoids loading full doc
 
 Replace an existing Wiki document:
 
-```powershell
-python <skill-dir>/scripts/publish_feishu_wiki_doc.py `
-  --source C:\path\page.md `
-  --target-wiki-url https://tenant.feishu.cn/wiki/TOKEN
+```bash
+python <skill-dir>/scripts/publish_feishu_wiki_doc.py --source path/to/page.md --target-wiki-url https://tenant.feishu.cn/wiki/TOKEN
 ```
 
 Create a child page under a parent Wiki page:
 
-```powershell
-python <skill-dir>/scripts/publish_feishu_wiki_doc.py `
-  --source C:\path\page.md `
-  --parent-wiki-url https://tenant.feishu.cn/wiki/PARENT_TOKEN
+```bash
+python <skill-dir>/scripts/publish_feishu_wiki_doc.py --source path/to/page.md --parent-wiki-url https://tenant.feishu.cn/wiki/PARENT_TOKEN
 ```
 
 The first Markdown `#` heading becomes the title. Use `--title` only when the source has no H1 or the user explicitly requests another title.
@@ -44,10 +40,8 @@ The first Markdown `#` heading becomes the title. Use `--title` only when the so
 
 Run preparation without Feishu writes:
 
-```powershell
-python <skill-dir>/scripts/publish_feishu_wiki_doc.py `
-  --source C:\path\page.md `
-  --prepare-only
+```bash
+python <skill-dir>/scripts/publish_feishu_wiki_doc.py --source path/to/page.md --prepare-only
 ```
 
 This validates UTF-8, strips YAML frontmatter, resolves every image to a PNG relative to the Markdown file, and prints a compact JSON manifest. Run it before any publish: an unresolvable image fails here instead of halfway through a write.

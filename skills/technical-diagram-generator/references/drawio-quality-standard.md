@@ -55,6 +55,16 @@ The page itself carries `background` on `mxGraphModel`. Draw.io reads it on expo
 - No connector line or arrowhead may pass through readable text, including titles, values, legends, or notes.
 - A connector with its own label uses an explicit perpendicular `mxGeometry y` offset of at least 16 px. A label background does not make a zero-offset label valid.
 
+## drawiokit routing limits
+
+Measured on the kit, 2026-09-21. Cards live in rows.
+
+- A connector between two cards of the same row needs a clear gutter between them — a card in between fails.
+- A connector between rows goes out of the bottom edge, along the lane between the two rows, and in through the top edge, so it works only between **adjacent** rows; skipping a row fails because the vertical leg would cross the row in between.
+- Within those rules fan-out (one card to several in the next row), fan-in, and a dashed back-edge between adjacent rows all route fine.
+- A state machine with edges that skip rows is not drawable: put the transition table in prose and draw one typical path.
+- The legend's tone labels are fixed (`feedback` reads "反馈 / 回程"); when a tone means something else in your figure, pass `sheet.legend(entries=[("tone", "feedback", "V8 削减的访问"), ...])`.
+
 ## Canvas and render checks
 
 - Fit the canvas to the content while retaining the outer margins; do not crop visible strokes or arrowheads.
