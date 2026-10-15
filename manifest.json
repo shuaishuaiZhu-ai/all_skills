@@ -1,11 +1,5 @@
 {
-  "plugins": [
-    {
-      "marketplace": "claude-plugins-official",
-      "repo": "anthropics/claude-plugins-official",
-      "plugin": "superpowers"
-    }
-  ],
+  "plugins": [],
   "skills": [
     {
       "name": "claude-api"
