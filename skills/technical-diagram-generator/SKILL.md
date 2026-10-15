@@ -7,7 +7,7 @@ description: Use when asked to 画图/出图解/改图/重画, for 图解, 知�
 
 Produce audience-calibrated technical diagrams with source evidence, rendered output, and verified links. The skill is environment-neutral: use only tools available in the current runtime and do not assume a private vault, account, host, or publishing system.
 
-For the learning document a figure belongs to — doc-type triage, evidence grading, `file:line` discipline — use `learning-doc-writer`.
+Optional: this skill works on its own. When the figure belongs to a learning document and the separate `learning-doc-writer` skill happens to be installed, it can handle that document's doc-type triage, evidence grading and `file:line` discipline; it is not a dependency and is not shipped with this skill.
 
 ## Format: Draw.io by default
 
